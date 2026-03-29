@@ -97,12 +97,13 @@ function buildMonsterMesh(type) {
 
     /* ── RAT ── */
     case 'rat': {
-      // Body — flat elongated box
+      // Body — elongated oval
       const body = new THREE.Mesh(
-        new THREE.BoxGeometry(0.18, 0.1, 0.28),
+        new THREE.SphereGeometry(0.14, 8, 6),
         mats.rat.body
       );
-      body.position.y = 0.05;
+      body.scale.set(0.65, 0.45, 1);
+      body.position.y = 0.06;
       g.add(body);
 
       // Head — small sphere with cone snout
@@ -154,22 +155,24 @@ function buildMonsterMesh(type) {
       tail.rotation.x = 0.8;
       g.add(tail);
 
-      // Feet
-      const footGeo = new THREE.BoxGeometry(0.04, 0.02, 0.04);
+      // Paws
+      const pawGeo = new THREE.SphereGeometry(0.018, 5, 3);
       for (const xOff of [-0.07, 0.07]) {
         for (const zOff of [-0.08, 0.08]) {
-          const foot = new THREE.Mesh(footGeo, mats.rat.tail);
-          foot.position.set(xOff, 0.01, zOff);
-          g.add(foot);
+          const paw = new THREE.Mesh(pawGeo, mats.rat.tail);
+          paw.scale.set(1, 0.5, 1.3);
+          paw.position.set(xOff, 0.01, zOff);
+          g.add(paw);
         }
       }
 
-      // --- DETAIL: hunched back ridge ---
+      // --- DETAIL: hunched spine ridge ---
       const ridge = new THREE.Mesh(
-        new THREE.BoxGeometry(0.04, 0.04, 0.2),
+        new THREE.SphereGeometry(0.06, 6, 4),
         mats.rat.tail
       );
-      ridge.position.set(0, 0.12, -0.02);
+      ridge.scale.set(0.4, 0.5, 1.6);
+      ridge.position.set(0, 0.1, -0.02);
       g.add(ridge);
 
       // --- DETAIL: drool drop ---
