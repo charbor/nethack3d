@@ -5,6 +5,7 @@ import { stairX, stairZ, torchLights, playerLight, stairArrow, overlapsWall } fr
 import { keys } from './input.js';
 import { initCharScreen } from './charscreen.js';
 import { spawnMonsters, updateMonsters, updatePlayerAttack, tryPlayerAttack, aliveCount } from './monsters.js';
+import { startSwing, updateWeapon } from './weapon.js';
 import './inventory.js';
 
 /* Wire up start button → character creation */
@@ -17,6 +18,7 @@ spawnMonsters();
 const canvas = document.getElementById('c');
 canvas.addEventListener('mousedown', (e) => {
   if (e.button === 0 && gameState.started && !gameState.inventoryOpen) {
+    startSwing();
     tryPlayerAttack();
   }
 });
@@ -66,6 +68,9 @@ function update(dt) {
   /* Player light */
   playerLight.position.copy(camera.position);
   playerLight.position.y -= 0.4;
+
+  /* Weapon swing */
+  updateWeapon(dt);
 
   /* Monsters */
   updateMonsters(dt);
