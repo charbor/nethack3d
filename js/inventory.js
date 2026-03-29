@@ -1,7 +1,8 @@
 import { ITEMS, CAT_ORDER, EYE_H } from './config.js';
 import { character, player, gameState } from './state.js';
 import { drawIcon } from './icons.js';
-import { rooms, playerLight } from './world.js';
+import { getRooms } from './world.js';
+import * as world from './world.js';
 import { camera, canvas } from './renderer.js';
 import { enterFallback, setHint } from './input.js';
 import { showMsg } from './ui.js';
@@ -58,14 +59,15 @@ function doUse(entry) {
   } else if (u === 'mana') {
     showMsg('You drink ' + entry.item.name + '. You feel magical energy!');
   } else if (u === 'teleport') {
-    const r = rooms[Math.floor(Math.random() * rooms.length)];
+    const _rooms = getRooms();
+    const r = _rooms[Math.floor(Math.random() * _rooms.length)];
     player.pos.set(r.x + r.w / 2 + 0.5, 0, r.y + r.h / 2 + 0.5);
     camera.position.set(player.pos.x, EYE_H, player.pos.z);
     showMsg('You read ' + entry.item.name + '. The world shifts around you!');
   } else if (u === 'light') {
-    playerLight.distance = 16;
-    playerLight.intensity = 6;
-    setTimeout(() => { playerLight.distance = 7; playerLight.intensity = 2.8; }, 30000);
+    world.playerLight.distance = 16;
+    world.playerLight.intensity = 6;
+    setTimeout(() => { world.playerLight.distance = 7; world.playerLight.intensity = 2.8; }, 30000);
     showMsg('You read ' + entry.item.name + '. The dungeon brightens!');
   }
   removeItem(entry);

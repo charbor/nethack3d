@@ -10,4 +10,5 @@ export const gameState = {
   started: false, locked: false,
   fallbackMode: false, mouseActive: false,
   inventoryOpen: false, selectedSlot: null,
+  dungeonLevel: 1,
 };

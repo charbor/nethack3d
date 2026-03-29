@@ -1,10 +1,11 @@
 import { SPEED, SPRINT, RADIUS, EYE_H } from './config.js';
 import { character, player, gameState } from './state.js';
 import { scene, camera, renderer } from './renderer.js';
-import { stairX, stairZ, torchLights, playerLight, stairArrow, overlapsWall } from './world.js';
+import { getStairX, getStairZ, getUpStairX, getUpStairZ, torchLights, overlapsWall, descend, ascend } from './world.js';
+import * as world from './world.js';
 import { keys } from './input.js';
 import { initCharScreen } from './charscreen.js';
-import { spawnMonsters, updateMonsters, updatePlayerAttack, tryPlayerAttack, aliveCount } from './monsters.js';
+import { spawnMonsters, clearMonsters, updateMonsters, updatePlayerAttack, tryPlayerAttack, aliveCount } from './monsters.js';
 import { startSwing, updateWeapon } from './weapon.js';
 import './inventory.js';
 
@@ -23,6 +24,24 @@ canvas.addEventListener('mousedown', (e) => {
   }
 });
 
+/* Stairs — NetHack style: '>' descend, '<' ascend */
+document.addEventListener('keydown', e => {
+  if (!gameState.started || gameState.inventoryOpen) return;
+  const isDescend = e.key === '>' || (e.code === 'Period' && e.shiftKey);
+  const isAscend  = e.key === '<' || (e.code === 'Comma'  && e.shiftKey);
+  if (isDescend && _nearStair) {
+    e.preventDefault();
+    clearMonsters();
+    descend();
+    spawnMonsters();
+  } else if (isAscend && _nearUpStair) {
+    e.preventDefault();
+    clearMonsters();
+    ascend();
+    spawnMonsters();
+  }
+});
+
 /* =========================================================
    GAME LOOP
    ========================================================= */
@@ -30,6 +49,9 @@ const clock    = new THREE.Clock();
 const statusEl = document.getElementById('statusText');
 const _fwd     = new THREE.Vector3();
 const _right   = new THREE.Vector3();
+
+let _nearStair = false;
+let _nearUpStair = false;
 
 function update(dt) {
   if ((!gameState.locked && !gameState.mouseActive) || gameState.inventoryOpen) return;
@@ -66,8 +88,8 @@ function update(dt) {
   camera.rotation.x = player.pitch;
 
   /* Player light */
-  playerLight.position.copy(camera.position);
-  playerLight.position.y -= 0.4;
+  world.playerLight.position.copy(camera.position);
+  world.playerLight.position.y -= 0.4;
 
   /* Weapon swing */
   updateWeapon(dt);
@@ -85,21 +107,29 @@ function update(dt) {
   }
 
   /* Stair marker spin */
-  stairArrow.rotation.y = clock.elapsedTime * 1.8;
+  world.stairArrow.rotation.y = clock.elapsedTime * 1.8;
+  if (world.upStairArrow) world.upStairArrow.rotation.y = clock.elapsedTime * 1.8;
 
   /* Status */
   const px = Math.floor(player.pos.x), pz = Math.floor(player.pos.z);
-  const nearStair = Math.hypot(player.pos.x - (stairX + 0.5),
+  const stairX = getStairX(), stairZ = getStairZ();
+  const upX = getUpStairX(), upZ = getUpStairZ();
+  _nearStair = Math.hypot(player.pos.x - (stairX + 0.5),
                                player.pos.z - (stairZ + 0.5)) < 1.6;
+  _nearUpStair = upX >= 0 && Math.hypot(player.pos.x - (upX + 0.5),
+                               player.pos.z - (upZ + 0.5)) < 1.6;
   const { role, hp, level, xp, equipped } = character;
   const wpn    = equipped.weapon ? equipped.weapon.item.name.replace(/^an?\s+/,'') : 'bare hands';
   const hpPct  = hp.cur / hp.max;
   const hpCol  = hpPct > 0.5 ? '#8f8' : hpPct > 0.25 ? '#fa0' : '#f44';
   const hpStr  = `<span style="color:${hpCol}">HP ${hp.cur}/${hp.max}</span>`;
   const xpStr  = `XP:${xp}/${level * 50}`;
-  const stair  = nearStair ? `&nbsp;&nbsp;<span class="hi">▼ Stairs to Level 2</span>` : '';
+  const dl     = gameState.dungeonLevel;
+  let stairHint = '';
+  if (_nearStair)   stairHint = `&nbsp;&nbsp;<span class="hi">▼ Stairs to Level ${dl + 1} (&gt;)</span>`;
+  if (_nearUpStair) stairHint = `&nbsp;&nbsp;<span class="hi" style="color:#6ef">▲ Stairs to Level ${dl - 1} (&lt;)</span>`;
   statusEl.innerHTML =
-    `${role} (${wpn}) &nbsp;${hpStr}&nbsp; Lvl:${level} ${xpStr} &nbsp;DL:1 &nbsp;(${px},${pz})${stair}`;
+    `${role} (${wpn}) &nbsp;${hpStr}&nbsp; Lvl:${level} ${xpStr} &nbsp;DL:${dl} &nbsp;(${px},${pz})${stairHint}`;
 }
 
 function loop() {

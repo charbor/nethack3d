@@ -1,7 +1,7 @@
 import { MAP_W, MAP_H, ITEMS } from './config.js';
 import { character, player, gameState } from './state.js';
 import { scene, camera } from './renderer.js';
-import { map, rooms, stairX, stairZ, isBlocked } from './world.js';
+import { getRooms, isBlocked } from './world.js';
 import { showMsg } from './ui.js';
 
 /* =========================================================
@@ -786,20 +786,25 @@ function cacheColors(group) {
   });
 }
 
-export function spawnMonsters() {
-  /* Clear existing */
+export function clearMonsters() {
   for (const m of monsters) {
     scene.remove(m.sprite);
     scene.remove(m.hpBar.sprite);
   }
   monsters.length = 0;
+}
 
+export function spawnMonsters() {
+  clearMonsters();
+
+  const rooms = getRooms();
   for (let i = 0; i < rooms.length; i++) {
     /* Skip first room (player start) and stair room */
     if (i === 0 || i === rooms.length - 1) continue;
 
     const room = rooms[i];
-    const tierIdx = Math.min(Math.floor(i / Math.max(1, rooms.length / TIERS.length)), TIERS.length - 1);
+    const dlBoost = gameState.dungeonLevel - 1;
+    const tierIdx = Math.min(Math.floor(i / Math.max(1, rooms.length / TIERS.length)) + dlBoost, TIERS.length - 1);
     const tier = TIERS[tierIdx];
 
     /* 1-3 monsters per room */
