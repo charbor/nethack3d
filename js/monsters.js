@@ -1,4 +1,4 @@
-import { MAP_W, MAP_H } from './config.js';
+import { MAP_W, MAP_H, ITEMS } from './config.js';
 import { character, player, gameState } from './state.js';
 import { scene, camera } from './renderer.js';
 import { map, rooms, stairX, stairZ, isBlocked } from './world.js';
@@ -24,6 +24,16 @@ const TIERS = [
   ['goblin', 'skeleton'],
   ['skeleton', 'orc'],
 ];
+
+/* Drop tables — [itemKey, dropChance (0-1)] */
+const DROPS = {
+  rat:      [['foodRation', 0.3]],
+  bat:      [['foodRation', 0.2]],
+  kobold:   [['dagger', 0.25], ['healPotion', 0.15], ['foodRation', 0.2]],
+  goblin:   [['shortsword', 0.2], ['leather', 0.15], ['healPotion', 0.2], ['foodRation', 0.15]],
+  skeleton: [['longsword', 0.15], ['shield', 0.12], ['scrollTele', 0.1], ['healPotion', 0.2]],
+  orc:      [['longsword', 0.2], ['chainmail', 0.1], ['mace', 0.15], ['healPotion', 0.25], ['scrollLight', 0.1]],
+};
 
 /* =========================================================
    3D MONSTER MESHES — built from basic geometries
@@ -1078,6 +1088,23 @@ function killMonster(m) {
   /* Grant XP */
   character.xp += m.type.xp;
   showMsg(`The ${m.type.name} dies! (+${m.type.xp} XP)`);
+
+  /* Roll for drops */
+  const table = DROPS[m.type.name];
+  if (table) {
+    for (const [itemKey, chance] of table) {
+      if (Math.random() < chance) {
+        const item = ITEMS[itemKey];
+        if (!item) continue;
+        const slot = String.fromCharCode(97 + character.inventory.length);
+        character.inventory.push({ slot, id: itemKey, item });
+        setTimeout(() => {
+          showMsg(`The ${m.type.name} dropped ${item.name}!`);
+        }, 600);
+        break; // only one drop per kill
+      }
+    }
+  }
 
   /* Level up check */
   const xpNeeded = character.level * 50;
