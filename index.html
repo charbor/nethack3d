@@ -18,6 +18,20 @@ canvas {
   height: 100vh;
 }
 
+/* ── Stair transition flash ── */
+#stairFlash {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 999;
+  transition: opacity 0.3s ease-out;
+}
+#stairFlash.active {
+  opacity: 1;
+  transition: opacity 0.25s ease-in;
+}
+
 /* ── Crosshair ── */
 #crosshair {
   position: fixed;
@@ -460,6 +474,7 @@ canvas {
 <body>
 
 <canvas id="c"></canvas>
+<div id="stairFlash"></div>
 <div id="msg"></div>
 <div id="crosshair"></div>
 <div id="vignette"></div>

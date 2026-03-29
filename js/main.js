@@ -24,21 +24,37 @@ canvas.addEventListener('mousedown', (e) => {
   }
 });
 
+/* Stair transition flash */
+const stairFlash = document.getElementById('stairFlash');
+let _transitioning = false;
+
+function doStairTransition(color, changeFn) {
+  if (_transitioning) return;
+  _transitioning = true;
+  stairFlash.style.background = color;
+  stairFlash.classList.add('active');
+  setTimeout(() => {
+    clearMonsters();
+    changeFn();
+    spawnMonsters();
+    setTimeout(() => {
+      stairFlash.classList.remove('active');
+      setTimeout(() => { _transitioning = false; }, 350);
+    }, 200);
+  }, 300);
+}
+
 /* Stairs — NetHack style: '>' descend, '<' ascend */
 document.addEventListener('keydown', e => {
-  if (!gameState.started || gameState.inventoryOpen) return;
+  if (!gameState.started || gameState.inventoryOpen || _transitioning) return;
   const isDescend = e.key === '>' || (e.code === 'Period' && e.shiftKey);
   const isAscend  = e.key === '<' || (e.code === 'Comma'  && e.shiftKey);
   if (isDescend && _nearStair) {
     e.preventDefault();
-    clearMonsters();
-    descend();
-    spawnMonsters();
+    doStairTransition('#ffe8a0', descend);
   } else if (isAscend && _nearUpStair) {
     e.preventDefault();
-    clearMonsters();
-    ascend();
-    spawnMonsters();
+    doStairTransition('#a0e8ff', ascend);
   }
 });
 
