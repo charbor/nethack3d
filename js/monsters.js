@@ -765,9 +765,9 @@ function updateHpBar(bar, pct) {
   const cv = bar.canvas;
   const c = cv.getContext('2d');
   c.clearRect(0, 0, 32, 4);
-  c.fillStyle = '#300';
+  c.fillStyle = 'rgba(0,0,0,0.3)';
   c.fillRect(0, 0, 32, 4);
-  c.fillStyle = pct > 0.5 ? '#0c0' : pct > 0.25 ? '#fa0' : '#f00';
+  c.fillStyle = pct > 0.5 ? 'rgba(255,230,120,0.6)' : pct > 0.25 ? 'rgba(255,210,100,0.6)' : 'rgba(255,90,70,0.6)';
   c.fillRect(0, 0, Math.round(32 * pct), 4);
   bar.sprite.material.map.needsUpdate = true;
 }

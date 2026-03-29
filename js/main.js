@@ -137,7 +137,7 @@ function update(dt) {
   const { role, hp, level, xp, equipped } = character;
   const wpn    = equipped.weapon ? equipped.weapon.item.name.replace(/^an?\s+/,'') : 'bare hands';
   const hpPct  = hp.cur / hp.max;
-  const hpCol  = hpPct > 0.5 ? '#8f8' : hpPct > 0.25 ? '#fa0' : '#f44';
+  const hpCol  = hpPct > 0.5 ? '#6a5a4a' : hpPct > 0.25 ? '#7a5530' : '#6a3028';
   const hpStr  = `<span style="color:${hpCol}">HP ${hp.cur}/${hp.max}</span>`;
   const xpStr  = `XP:${xp}/${level * 50}`;
   const dl     = gameState.dungeonLevel;
