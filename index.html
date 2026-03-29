@@ -287,7 +287,7 @@ canvas {
 </div>
 
 <!-- Three.js r163 global build (works on file://) -->
-<script src="https://cdn.jsdelivr.net/npm/three@0.163.0/build/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
 <script>
 /* =========================================================
@@ -544,6 +544,17 @@ elCsBack.addEventListener('click', () => {
   if (cs.step > 0) { cs.step--; csRender(); }
 });
 elCsNext.addEventListener('click', csAdvance);
+
+document.getElementById('startBtn').addEventListener('click', () => {
+  elOverlay.style.display     = 'none';
+  elCharScreen.style.display  = 'flex';
+  cs.step  = 0;
+  cs.name  = '';
+  cs.race  = 'Human';
+  cs.role  = 'Warrior';
+  cs.align = 'Neutral';
+  csRender();
+});
 
 /* =========================================================
    DUNGEON GENERATION
@@ -897,18 +908,6 @@ document.addEventListener('mousemove', e => {
   const s = 0.0018;
   player.yaw   -= e.movementX * s;
   player.pitch  = Math.max(-1.45, Math.min(1.45, player.pitch - e.movementY * s));
-});
-
-document.getElementById('startBtn').addEventListener('click', () => {
-  elOverlay.style.display     = 'none';
-  elCharScreen.style.display  = 'flex';
-  /* default selections so user can skip straight through */
-  cs.step  = 0;
-  cs.name  = '';
-  cs.race  = 'Human';
-  cs.role  = 'Warrior';
-  cs.align = 'Neutral';
-  csRender();
 });
 
 function startGame() {
