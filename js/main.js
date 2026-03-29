@@ -5,7 +5,7 @@ import { getStairX, getStairZ, getUpStairX, getUpStairZ, torchLights, overlapsWa
 import * as world from './world.js';
 import { keys } from './input.js';
 import { initCharScreen } from './charscreen.js';
-import { spawnMonsters, clearMonsters, updateMonsters, updatePlayerAttack, tryPlayerAttack, aliveCount } from './monsters.js';
+import { spawnMonsters, clearMonsters, updateMonsters, updatePlayerAttack, tryPlayerAttack, aliveCount, updateGroundItems } from './monsters.js';
 import { startSwing, updateWeapon } from './weapon.js';
 import './inventory.js';
 
@@ -113,6 +113,7 @@ function update(dt) {
   /* Monsters */
   updateMonsters(dt);
   updatePlayerAttack(dt);
+  updateGroundItems(dt);
 
   /* Torch flicker */
   for (const lt of torchLights) {

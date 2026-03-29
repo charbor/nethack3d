@@ -776,6 +776,63 @@ function updateHpBar(bar, pct) {
    MONSTER INSTANCES
    ========================================================= */
 export const monsters = [];
+const groundItems = [];
+
+/* ── Ground item visuals by category ── */
+const ITEM_VIS = {
+  Weapons: { geo: () => new THREE.BoxGeometry(0.14, 0.04, 0.04), col: 0x8a6a3a, emis: 0x3a2a10 },
+  Armor:   { geo: () => new THREE.BoxGeometry(0.10, 0.06, 0.10), col: 0x6a6a7a, emis: 0x1a1a2a },
+  Potions: { geo: () => new THREE.SphereGeometry(0.05, 6, 4),     col: 0x3a5a8a, emis: 0x102040 },
+  Food:    { geo: () => new THREE.BoxGeometry(0.08, 0.06, 0.08), col: 0x5a3a1a, emis: 0x1a1008 },
+  Scrolls: { geo: () => new THREE.CylinderGeometry(0.02, 0.02, 0.12, 6), col: 0x9a9a6a, emis: 0x2a2a10 },
+  Tools:   { geo: () => new THREE.BoxGeometry(0.10, 0.04, 0.04), col: 0x6a6a6a, emis: 0x1a1a1a },
+};
+
+function spawnGroundItem(x, z, id, item) {
+  var vis = ITEM_VIS[item.cat] || ITEM_VIS.Tools;
+  var group = new THREE.Group();
+
+  var mesh = new THREE.Mesh(vis.geo(), new THREE.MeshPhongMaterial({
+    color: vis.col, emissive: vis.emis,
+    specular: 0x444444, shininess: 20,
+  }));
+  group.add(mesh);
+
+  /* Small glow light so items are visible in dark rooms */
+  var light = new THREE.PointLight(vis.col, 0.4, 2.0, 2);
+  light.position.set(0, 0.15, 0);
+  group.add(light);
+
+  group.position.set(x, 0.15, z);
+  scene.add(group);
+
+  groundItems.push({ x, z, id, item, mesh: group, time: Math.random() * 6 });
+}
+
+export function updateGroundItems(dt) {
+  for (var i = groundItems.length - 1; i >= 0; i--) {
+    var gi = groundItems[i];
+    gi.time += dt;
+
+    /* Bob and rotate */
+    gi.mesh.position.y = 0.15 + Math.sin(gi.time * 2.0) * 0.04;
+    gi.mesh.rotation.y = gi.time * 1.2;
+
+    /* Pickup check */
+    if (player.pos && Math.hypot(player.pos.x - gi.x, player.pos.z - gi.z) < 0.8) {
+      var slot = String.fromCharCode(97 + character.inventory.length);
+      character.inventory.push({ slot, id: gi.id, item: gi.item });
+      showMsg('You pick up ' + gi.item.name + '.');
+      scene.remove(gi.mesh);
+      groundItems.splice(i, 1);
+    }
+  }
+}
+
+function clearGroundItems() {
+  for (var gi of groundItems) scene.remove(gi.mesh);
+  groundItems.length = 0;
+}
 
 /* Store original colors so we can restore after hit flash */
 function cacheColors(group) {
@@ -792,6 +849,7 @@ export function clearMonsters() {
     scene.remove(m.hpBar.sprite);
   }
   monsters.length = 0;
+  clearGroundItems();
 }
 
 export function spawnMonsters() {
@@ -1094,19 +1152,18 @@ function killMonster(m) {
   character.xp += m.type.xp;
   showMsg(`The ${m.type.name} dies! (+${m.type.xp} XP)`);
 
-  /* Roll for drops */
+  /* Roll for drops — spawn on ground */
   const table = DROPS[m.type.name];
   if (table) {
     for (const [itemKey, chance] of table) {
       if (Math.random() < chance) {
         const item = ITEMS[itemKey];
         if (!item) continue;
-        const slot = String.fromCharCode(97 + character.inventory.length);
-        character.inventory.push({ slot, id: itemKey, item });
+        spawnGroundItem(m.x, m.z, itemKey, item);
         setTimeout(() => {
           showMsg(`The ${m.type.name} dropped ${item.name}!`);
         }, 600);
-        break; // only one drop per kill
+        break;
       }
     }
   }
