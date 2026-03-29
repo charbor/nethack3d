@@ -189,7 +189,16 @@ function confirmChar() {
   }
 
   elCharScreen.style.display = 'none';
-  startGame();
+  showIntro();
+}
+
+/* ── Intro — calls global dream sequence defined in index.html ── */
+function showIntro() {
+  if (window._showDreamIntro) {
+    window._showDreamIntro(character, startGame);
+  } else {
+    startGame();
+  }
 }
 
 elCsBack.addEventListener('click', () => {

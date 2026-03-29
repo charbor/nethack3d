@@ -462,6 +462,7 @@ canvas {
 }
 #deathscreen button:hover { background: #c44; }
 
+
 /* vignette */
 #vignette {
   position: fixed; inset: 0;
@@ -513,6 +514,7 @@ canvas {
   <div class="inv-wrap" id="invBody"></div>
 </div>
 
+
 <div id="deathscreen" class="screen">
   <h1>YOU DIED</h1>
   <div class="death-msg"></div>
@@ -522,6 +524,209 @@ canvas {
 
 <!-- Three.js r128 global build -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ── Dream sequence intro — divine light vision ── */
+window._showDreamIntro = function(ch, onDone) {
+  var LORE = {
+    Warrior:  'to seek glory in the depths below, blade in hand and courage in heart',
+    Valkyrie: 'to descend into the abyss and prove your worth to the gods of battle',
+    Rogue:    'to slip into the dungeon unseen and claim its treasures for yourself',
+    Ranger:   'to venture into the unknown wilds beneath the earth',
+    Wizard:   'to plumb the arcane secrets buried in the darkness below',
+    Healer:   'to brave the dungeon and bring light where only death resides'
+  };
+  var ADJ  = { Lawful:'righteous', Neutral:'pragmatic', Chaotic:'unpredictable' };
+  var GOD  = { Lawful:'Mitra',     Neutral:'Crom',      Chaotic:'Set' };
+  var HUE  = { Lawful:'210,230,255', Neutral:'255,220,160', Chaotic:'200,140,255' };
+  var GHUE = { Lawful:'180,210,255', Neutral:'255,200,100', Chaotic:'180,100,255' };
+
+  var align = ch.align || 'Neutral';
+  var name  = ch.name  || 'Hack';
+  var race  = ch.race  || 'Human';
+  var role  = ch.role  || 'Warrior';
+  var wpn   = (ch.equipped && ch.equipped.weapon)
+    ? ch.equipped.weapon.item.name.replace(/^an?\s+/, '') : 'bare fists';
+  var lore = LORE[role] || 'to explore the dungeon';
+  var adj  = ADJ[align] || 'determined';
+  var god  = GOD[align] || 'the Gods';
+  var hue  = HUE[align] || '255,220,160';
+  var ghue = GHUE[align] || '255,200,100';
+
+  /* Inject stylesheet */
+  var css = document.createElement('style');
+  css.id = 'dreamCSS';
+  css.textContent =
+    '#dream{position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;' +
+    'background:#000;cursor:pointer;display:flex;align-items:center;justify-content:center;' +
+    'flex-direction:column;font-family:"Courier New",monospace;overflow:hidden}' +
+
+    /* Main divine glow — large, bright, pulsing */
+    '#dream .glow{position:absolute;top:-30%;left:50%;transform:translateX(-50%);' +
+    'width:600px;height:700px;border-radius:50%;' +
+    'background:radial-gradient(ellipse at 50% 40%,' +
+    'rgba('+ghue+',0.35) 0%,rgba('+hue+',0.12) 25%,rgba('+hue+',0.04) 45%,transparent 70%);' +
+    'animation:dPulse 3.5s ease-in-out infinite;pointer-events:none}' +
+
+    /* Inner bright core */
+    '#dream .core{position:absolute;top:-8%;left:50%;transform:translateX(-50%);' +
+    'width:80px;height:80px;border-radius:50%;' +
+    'background:radial-gradient(circle,rgba('+ghue+',0.6) 0%,rgba('+hue+',0.15) 40%,transparent 70%);' +
+    'animation:dCore 2.5s ease-in-out infinite;pointer-events:none;' +
+    'box-shadow:0 0 60px 20px rgba('+hue+',0.15),0 0 120px 40px rgba('+hue+',0.06)}' +
+
+    /* God rays — wider, more dramatic */
+    '#dream .ray{position:absolute;top:-8%;left:50%;height:65vh;' +
+    'background:linear-gradient(to bottom,rgba('+hue+',0.5),rgba('+hue+',0.12) 40%,rgba('+hue+',0.02) 70%,transparent);' +
+    'animation:dRay 2.2s ease-in-out infinite;pointer-events:none;transform-origin:top center}' +
+    '#dream .ray.a{width:3px;transform:translateX(-50%) rotate(-12deg);animation-delay:.2s;opacity:.6}' +
+    '#dream .ray.b{width:4px;transform:translateX(-50%) rotate(-4deg);opacity:.8}' +
+    '#dream .ray.c{width:3px;transform:translateX(-50%) rotate(3deg);animation-delay:.5s;opacity:.7}' +
+    '#dream .ray.d{width:2px;transform:translateX(-50%) rotate(10deg);animation-delay:.9s;opacity:.5}' +
+    '#dream .ray.e{width:2px;transform:translateX(-50%) rotate(-8deg);animation-delay:1.3s;opacity:.4}' +
+    '#dream .ray.f{width:3px;transform:translateX(-50%) rotate(7deg);animation-delay:1.7s;opacity:.55}' +
+
+    /* Motes — floating particles rising toward the light */
+    '#dream .motes{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;overflow:hidden}' +
+    '#dream .mote{position:absolute;border-radius:50%;background:rgba('+hue+',0.6);' +
+    'animation:dFloat linear infinite;pointer-events:none}' +
+
+    /* Vignette — heavy, dramatic */
+    '#dream .vig{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;' +
+    'background:radial-gradient(ellipse at 50% 35%,transparent 30%,rgba(0,0,0,0.5) 60%,#000 100%)}' +
+
+    /* Ground fog */
+    '#dream .fog{position:absolute;bottom:0;left:0;right:0;height:25vh;pointer-events:none;' +
+    'background:linear-gradient(to top,rgba('+hue+',0.04),transparent);' +
+    'animation:dFog 5s ease-in-out infinite}' +
+
+    /* God name — bigger, glowing */
+    '#dream .gname{position:relative;z-index:2;' +
+    'font-size:16px;letter-spacing:10px;text-transform:uppercase;margin-bottom:4px;' +
+    'color:rgba('+hue+',0.9);text-shadow:0 0 20px rgba('+hue+',0.5),0 0 40px rgba('+hue+',0.2);' +
+    'opacity:0;animation:dIn 2.5s .3s forwards}' +
+
+    /* Divider line */
+    '#dream .divider{position:relative;z-index:2;width:120px;height:1px;margin:10px auto 14px;' +
+    'background:linear-gradient(to right,transparent,rgba('+hue+',0.4),transparent);' +
+    'opacity:0;animation:dIn 2s .6s forwards}' +
+
+    /* Book line */
+    '#dream .book{position:relative;z-index:2;color:#666;font-size:10px;' +
+    'letter-spacing:4px;text-transform:uppercase;margin-bottom:28px;' +
+    'opacity:0;animation:dIn 2s 1s forwards}' +
+
+    /* Main text — slightly larger, better spacing */
+    '#dream .txt{position:relative;z-index:2;max-width:540px;width:90vw;text-align:center;' +
+    'font-size:15px;line-height:2.3;color:#aaa;opacity:0;animation:dIn 2.5s 1.6s forwards}' +
+    '#dream .txt .hi{color:#f80;text-shadow:0 0 8px rgba(255,136,0,0.3)}' +
+    '#dream .txt .al{color:rgba('+hue+',0.95);text-shadow:0 0 8px rgba('+hue+',0.3)}' +
+
+    /* Final dramatic line */
+    '#dream .final{position:relative;z-index:2;margin-top:20px;' +
+    'font-size:13px;color:#777;font-style:italic;letter-spacing:1px;' +
+    'opacity:0;animation:dIn 2s 3s forwards}' +
+
+    /* Dismiss hint */
+    '#dream .hint{position:relative;z-index:2;color:#444;font-size:10px;' +
+    'letter-spacing:2px;margin-top:34px;opacity:0;animation:dBlink 1.6s 4s ease-in-out infinite}' +
+
+    /* Stars — twinkling */
+    '#dream .stars{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none}' +
+    '#dream .s{position:absolute;border-radius:50%;background:rgba('+hue+',0.5);' +
+    'animation:dTwinkle ease-in-out infinite}' +
+
+    /* Keyframes */
+    '@keyframes dPulse{0%,100%{opacity:.6;transform:translateX(-50%) scale(1)}' +
+    '50%{opacity:1;transform:translateX(-50%) scale(1.08)}}' +
+    '@keyframes dCore{0%,100%{opacity:.5;transform:translateX(-50%) scale(1)}' +
+    '50%{opacity:1;transform:translateX(-50%) scale(1.2)}}' +
+    '@keyframes dRay{0%,100%{opacity:.3}50%{opacity:1}}' +
+    '@keyframes dIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}' +
+    '@keyframes dBlink{0%,100%{opacity:0}30%,70%{opacity:.7}}' +
+    '@keyframes dFloat{0%{transform:translateY(0) scale(1);opacity:0}' +
+    '10%{opacity:.7}90%{opacity:.3}100%{transform:translateY(-100vh) scale(0.3);opacity:0}}' +
+    '@keyframes dTwinkle{0%,100%{opacity:.15}50%{opacity:.7}}' +
+    '@keyframes dFog{0%,100%{opacity:.5}50%{opacity:1}}';
+  document.head.appendChild(css);
+
+  /* Build overlay */
+  var el = document.createElement('div');
+  el.id = 'dream';
+  el.innerHTML =
+    '<div class="stars"></div>' +
+    '<div class="motes"></div>' +
+    '<div class="glow"></div>' +
+    '<div class="core"></div>' +
+    '<div class="ray a"></div><div class="ray b"></div>' +
+    '<div class="ray c"></div><div class="ray d"></div>' +
+    '<div class="ray e"></div><div class="ray f"></div>' +
+    '<div class="fog"></div>' +
+    '<div class="vig"></div>' +
+    '<div class="gname">' + god + '</div>' +
+    '<div class="divider"></div>' +
+    '<div class="book">It is written in the Book of the Dead</div>' +
+    '<div class="txt">' +
+      'In the year of shadows, the <span class="al">' + adj + '</span> ' +
+      '<span class="hi">' + race + '</span> known as <span class="hi">' + name + '</span> ' +
+      'set forth ' + lore + '.<br><br>' +
+      'Armed with a <span class="hi">' + wpn + '</span> and the resolve of a true ' +
+      '<span class="hi">' + role + '</span>, you descend the crumbling stairs ' +
+      'into the dungeon of doom.' +
+    '</div>' +
+    '<div class="final">The air grows cold. The torches flicker. Something stirs in the dark.</div>' +
+    '<div class="hint">\u2014 click or press any key \u2014</div>';
+
+  /* Stars — twinkling */
+  var stars = el.querySelector('.stars');
+  for (var i = 0; i < 80; i++) {
+    var dot = document.createElement('div');
+    dot.className = 's';
+    var sz = Math.random() < .15 ? 2 : 1;
+    var dur = 2 + Math.random() * 4;
+    dot.style.cssText = 'left:'+Math.random()*100+'%;top:'+Math.random()*85+'%;' +
+      'width:'+sz+'px;height:'+sz+'px;animation-duration:'+dur+'s;animation-delay:'+Math.random()*dur+'s';
+    stars.appendChild(dot);
+  }
+
+  /* Rising motes — glowing particles drifting upward */
+  var motes = el.querySelector('.motes');
+  for (var j = 0; j < 20; j++) {
+    var m = document.createElement('div');
+    m.className = 'mote';
+    var msz = 1 + Math.random() * 2;
+    var mdur = 6 + Math.random() * 8;
+    m.style.cssText = 'left:'+(30+Math.random()*40)+'%;bottom:-5%;' +
+      'width:'+msz+'px;height:'+msz+'px;' +
+      'animation-duration:'+mdur+'s;animation-delay:'+Math.random()*mdur+'s';
+    motes.appendChild(m);
+  }
+
+  document.body.appendChild(el);
+
+  /* Dismiss after delay */
+  var ready = false;
+  setTimeout(function() {
+    ready = true;
+    el.addEventListener('click', go);
+    document.addEventListener('keydown', go);
+  }, 600);
+
+  function go() {
+    if (!ready) return;
+    ready = false;
+    el.removeEventListener('click', go);
+    document.removeEventListener('keydown', go);
+    el.style.transition = 'opacity 1s';
+    el.style.opacity = '0';
+    setTimeout(function() {
+      el.remove();
+      var s = document.getElementById('dreamCSS');
+      if (s) s.remove();
+      onDone();
+    }, 1000);
+  }
+};
+</script>
 <script type="module" src="js/main.js"></script>
 
 </body>
