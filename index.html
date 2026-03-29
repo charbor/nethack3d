@@ -414,6 +414,40 @@ canvas {
   z-index: 2;
 }
 
+/* ── Death screen ── */
+#deathscreen {
+  background: rgba(30,0,0,0.95);
+  display: none;
+  color: #f44;
+}
+#deathscreen h1 {
+  font-size: 48px;
+  color: #f44;
+  text-shadow: 0 0 28px #a00, 0 0 56px #600;
+  letter-spacing: 6px;
+  margin-bottom: 16px;
+}
+#deathscreen .death-msg {
+  color: #a88;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+#deathscreen .death-score {
+  color: #866;
+  font-size: 13px;
+  letter-spacing: 2px;
+  margin-bottom: 32px;
+}
+#deathscreen button {
+  padding: 13px 46px;
+  background: #a33; color: #fff;
+  border: none;
+  font: bold 17px 'Courier New', monospace;
+  letter-spacing: 3px;
+  cursor: pointer;
+}
+#deathscreen button:hover { background: #c44; }
+
 /* vignette */
 #vignette {
   position: fixed; inset: 0;
@@ -438,6 +472,7 @@ canvas {
     <div><span class="k">W A S D</span> &nbsp;—&nbsp; Move</div>
     <div><span class="k">Mouse</span> &nbsp;—&nbsp; Look around</div>
     <div><span class="k">Shift</span> &nbsp;—&nbsp; Run</div>
+    <div><span class="k">Click</span> &nbsp;—&nbsp; Attack</div>
     <div><span class="k">I</span> &nbsp;—&nbsp; Inventory</div>
     <div><span class="k">Esc</span> &nbsp;—&nbsp; Release mouse</div>
   </div>
@@ -461,6 +496,13 @@ canvas {
 
 <div id="inventory" class="screen">
   <div class="inv-wrap" id="invBody"></div>
+</div>
+
+<div id="deathscreen" class="screen">
+  <h1>YOU DIED</h1>
+  <div class="death-msg"></div>
+  <div class="death-score"></div>
+  <button onclick="location.reload()">TRY AGAIN</button>
 </div>
 
 <!-- Three.js r128 global build -->
