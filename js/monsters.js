@@ -38,11 +38,11 @@ const soulFireMat = new THREE.MeshBasicMaterial({ color: 0xff3322 });
 /* Per-type materials — Phong for specular torchlight gleam */
 const mats = {
   rat: {
-    body: new THREE.MeshPhongMaterial({ color: 0x6a4a18, emissive: 0x0a0604, specular: 0x221a0a, shininess: 6 }),
-    head: new THREE.MeshPhongMaterial({ color: 0x7a5a20, emissive: 0x0a0604, specular: 0x221a0a, shininess: 6 }),
-    tail: new THREE.MeshPhongMaterial({ color: 0x5a3a10, emissive: 0x060402, specular: 0x1a1208, shininess: 4 }),
+    body: new THREE.MeshPhongMaterial({ color: 0x1a1a1a, emissive: 0x040404, specular: 0x1a1a1a, shininess: 8 }),
+    head: new THREE.MeshPhongMaterial({ color: 0x222222, emissive: 0x050505, specular: 0x1a1a1a, shininess: 8 }),
+    tail: new THREE.MeshPhongMaterial({ color: 0x141414, emissive: 0x030303, specular: 0x101010, shininess: 4 }),
     nose: new THREE.MeshPhongMaterial({ color: 0xffaaaa, emissive: 0x100404, specular: 0x442222, shininess: 18 }),
-    drool: new THREE.MeshPhongMaterial({ color: 0x664422, emissive: 0x0a0402, specular: 0x442a1a, shininess: 30, transparent: true, opacity: 0.6, depthWrite: false }),
+    drool: new THREE.MeshPhongMaterial({ color: 0x443322, emissive: 0x060402, specular: 0x332a1a, shininess: 30, transparent: true, opacity: 0.6, depthWrite: false }),
   },
   bat: {
     body: new THREE.MeshPhongMaterial({ color: 0x2a2a30, emissive: 0x060608, specular: 0x222230, shininess: 10 }),
@@ -50,17 +50,17 @@ const mats = {
     fang: new THREE.MeshPhongMaterial({ color: 0xeeeeee, emissive: 0x040404, specular: 0x444444, shininess: 25 }),
   },
   kobold: {
-    body: new THREE.MeshPhongMaterial({ color: 0x2a5a2a, emissive: 0x040a04, specular: 0x1a2a1a, shininess: 12 }),
-    head: new THREE.MeshPhongMaterial({ color: 0x3a7a3a, emissive: 0x060c06, specular: 0x1a3a1a, shininess: 12 }),
-    arm:  new THREE.MeshPhongMaterial({ color: 0x2a5a2a, emissive: 0x040a04, specular: 0x1a2a1a, shininess: 10 }),
+    body: new THREE.MeshPhongMaterial({ color: 0x5a4a2a, emissive: 0x0a0804, specular: 0x2a1a0a, shininess: 12 }),
+    head: new THREE.MeshPhongMaterial({ color: 0x6a5a3a, emissive: 0x0c0a06, specular: 0x2a1a0a, shininess: 12 }),
+    arm:  new THREE.MeshPhongMaterial({ color: 0x5a4a2a, emissive: 0x0a0804, specular: 0x2a1a0a, shininess: 10 }),
     shaft: new THREE.MeshPhongMaterial({ color: 0x8a6a30, emissive: 0x040200, specular: 0x0a0804, shininess: 4 }),
     tip:  new THREE.MeshPhongMaterial({ color: 0xbbbbbb, emissive: 0x040404, specular: 0x444444, shininess: 28 }),
-    vest: new THREE.MeshPhongMaterial({ color: 0x1a3a1a, emissive: 0x040804, specular: 0x2a4a2a, shininess: 18 }),
+    vest: new THREE.MeshPhongMaterial({ color: 0x3a3020, emissive: 0x060504, specular: 0x1a1408, shininess: 18 }),
   },
   goblin: {
-    body: new THREE.MeshPhongMaterial({ color: 0x1a4a2a, emissive: 0x020604, specular: 0x0a1a0a, shininess: 5 }),
-    head: new THREE.MeshPhongMaterial({ color: 0x2a7a4a, emissive: 0x040a06, specular: 0x1a2a1a, shininess: 6 }),
-    arm:  new THREE.MeshPhongMaterial({ color: 0x1a5a3a, emissive: 0x020804, specular: 0x0a1a0a, shininess: 5 }),
+    body: new THREE.MeshPhongMaterial({ color: 0x3a3028, emissive: 0x060504, specular: 0x1a1410, shininess: 5 }),
+    head: new THREE.MeshPhongMaterial({ color: 0x4a3e32, emissive: 0x080604, specular: 0x1a1410, shininess: 6 }),
+    arm:  new THREE.MeshPhongMaterial({ color: 0x38302a, emissive: 0x060504, specular: 0x1a1410, shininess: 5 }),
     belt: new THREE.MeshPhongMaterial({ color: 0x8a6a30, emissive: 0x060400, specular: 0x221a08, shininess: 8 }),
     club: new THREE.MeshPhongMaterial({ color: 0x654433, emissive: 0x040200, specular: 0x0a0804, shininess: 3 }),
     tusk: new THREE.MeshPhongMaterial({ color: 0xeeeedd, emissive: 0x040402, specular: 0x333322, shininess: 15 }),
