@@ -193,26 +193,34 @@ function buildMonsterMesh(type) {
       body.position.y = 0.08;
       g.add(body);
 
-      // Wings — PlaneGeometry angled out
-      const wingGeo = new THREE.PlaneGeometry(0.28, 0.14, 3, 1);
+      // Wings — ShapeGeometry bat-wing silhouette
+      const wingShape = new THREE.Shape();
+      wingShape.moveTo(0, 0);
+      wingShape.lineTo(0.06, 0.06);          // upper finger
+      wingShape.quadraticCurveTo(0.16, 0.08, 0.26, 0.04);  // outer tip
+      wingShape.quadraticCurveTo(0.2, -0.01, 0.14, -0.03); // scallop 1
+      wingShape.quadraticCurveTo(0.1, 0.0, 0.08, -0.04);   // scallop 2
+      wingShape.quadraticCurveTo(0.04, -0.01, 0, -0.02);    // back to body
+      const wingGeo = new THREE.ShapeGeometry(wingShape);
       const wingL = new THREE.Mesh(wingGeo, mats.bat.wing);
-      wingL.position.set(-0.2, 0.1, 0);
-      wingL.rotation.set(0, 0, 0.3);
+      wingL.position.set(-0.02, 0.06, 0);
+      wingL.rotation.set(0, 0, 0.15);
+      wingL.scale.set(-1, 1, 1); // mirror
       g.add(wingL);
 
       const wingR = new THREE.Mesh(wingGeo.clone(), mats.bat.wing);
-      wingR.position.set(0.2, 0.1, 0);
-      wingR.rotation.set(0, 0, -0.3);
+      wingR.position.set(0.02, 0.06, 0);
+      wingR.rotation.set(0, 0, -0.15);
       g.add(wingR);
 
-      // --- DETAIL: wing bone struts ---
-      const boneGeo = new THREE.CylinderGeometry(0.005, 0.003, 0.22, 3);
+      // Wing bone struts
+      const boneGeo = new THREE.CylinderGeometry(0.004, 0.002, 0.2, 3);
       const boneL = new THREE.Mesh(boneGeo, mats.bat.body);
-      boneL.position.set(-0.18, 0.1, 0.01);
+      boneL.position.set(-0.14, 0.1, 0.005);
       boneL.rotation.z = 1.2;
       g.add(boneL);
       const boneR = new THREE.Mesh(boneGeo, mats.bat.body);
-      boneR.position.set(0.18, 0.1, 0.01);
+      boneR.position.set(0.14, 0.1, 0.005);
       boneR.rotation.z = -1.2;
       g.add(boneR);
 
