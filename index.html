@@ -1120,7 +1120,7 @@ function enterFallback() {
 /* Real pointer lock events */
 document.addEventListener('pointerlockchange', () => {
   locked = document.pointerLockElement === canvas;
-  if (!fallbackMode) {
+  if (!fallbackMode && !inventoryOpen) {
     elOverlay.style.display = (!locked && !gameStarted) ? 'flex' : 'none';
     elPaused.style.display  = (!locked &&  gameStarted) ? 'flex' : 'none';
   }
@@ -1164,7 +1164,7 @@ function resumeGame() {
 }
 
 canvas.addEventListener('click', () => {
-  if (!gameStarted) return;
+  if (!gameStarted || inventoryOpen) return;
   if (fallbackMode) {
     mouseActive = !mouseActive;
     setHint(mouseActive ? 'click to release mouse' : 'click to capture mouse');
@@ -1613,10 +1613,21 @@ function toggleInventory() {
   inventoryOpen = !inventoryOpen;
   if (inventoryOpen) {
     selectedSlot = null;
+    /* Release pointer lock so cursor is free to click tiles */
+    if (locked) document.exitPointerLock();
     renderInventory();
     elInventory.style.display = 'flex';
   } else {
     elInventory.style.display = 'none';
+    /* Re-acquire pointer lock or fallback */
+    if (!fallbackMode) {
+      const req = canvas.requestPointerLock();
+      if (req && typeof req.catch === 'function') req.catch(() => enterFallback());
+      else setTimeout(() => { if (!locked) enterFallback(); }, 300);
+    } else {
+      mouseActive = true;
+      setHint('click to release mouse');
+    }
   }
 }
 
