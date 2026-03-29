@@ -920,6 +920,17 @@ function startGame() {
   }
 }
 
+function resumeGame() {
+  if (!gameStarted) return;
+  if (fallbackMode) {
+    mouseActive = true;
+    setHint('click to release mouse');
+    elPaused.style.display = 'none';
+  } else if (!locked) {
+    canvas.requestPointerLock();
+  }
+}
+
 canvas.addEventListener('click', () => {
   if (!gameStarted) return;
   if (fallbackMode) {
@@ -930,6 +941,9 @@ canvas.addEventListener('click', () => {
     canvas.requestPointerLock();
   }
 });
+
+elPaused.addEventListener('click', resumeGame);
+elPaused.style.cursor = 'pointer';
 
 /* Esc in fallback mode → release look, show paused */
 document.addEventListener('keydown', e => {
