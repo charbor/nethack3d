@@ -24,7 +24,7 @@ export function enterFallback() {
 /* Real pointer lock events */
 document.addEventListener('pointerlockchange', () => {
   gameState.locked = document.pointerLockElement === canvas;
-  if (!gameState.fallbackMode && !gameState.inventoryOpen) {
+  if (!gameState.fallbackMode && !gameState.inventoryOpen && !gameState.mapOpen) {
     elOverlay.style.display = (!gameState.locked && !gameState.started) ? 'flex' : 'none';
     elPaused.style.display  = (!gameState.locked &&  gameState.started) ? 'flex' : 'none';
   }
@@ -34,7 +34,7 @@ document.addEventListener('pointerlockerror', () => {
 });
 
 document.addEventListener('mousemove', e => {
-  if ((!gameState.locked && !gameState.mouseActive) || gameState.inventoryOpen) return;
+  if ((!gameState.locked && !gameState.mouseActive) || gameState.inventoryOpen || gameState.mapOpen) return;
   const s = 0.0018;
   player.yaw   -= e.movementX * s;
   player.pitch  = Math.max(-1.45, Math.min(1.45, player.pitch - e.movementY * s));

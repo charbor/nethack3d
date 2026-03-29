@@ -399,6 +399,51 @@ canvas {
   font-size: 14px;
   margin-top: 20px;
 }
+/* ── Map overlay ── */
+#map {
+  background: rgba(0,0,0,0.94);
+  display: none;
+  color: #bbb;
+}
+#map .map-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+#map h2 {
+  font-size: 18px;
+  color: #f80;
+  letter-spacing: 3px;
+  text-align: center;
+  margin-bottom: 4px;
+}
+#map .map-level {
+  font-size: 11px;
+  color: #666;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+}
+#map #mapCanvas {
+  image-rendering: pixelated;
+  border: 1px solid #2a2a2a;
+}
+#map .map-legend {
+  margin-top: 12px;
+  font-size: 11px;
+  color: #555;
+  letter-spacing: 1px;
+}
+#map .ml-you  { color: #ff0; font-weight: bold; }
+#map .ml-down { color: #fc3; font-weight: bold; }
+#map .ml-up   { color: #3cf; font-weight: bold; }
+#map .ml-mon  { color: #f44; font-weight: bold; }
+#map .map-hint {
+  text-align: center;
+  color: #444;
+  font-size: 11px;
+  margin-top: 10px;
+  letter-spacing: 1px;
+}
 /* ── Message line ── */
 #msg {
   position: fixed;
@@ -490,6 +535,7 @@ canvas {
     <div><span class="k">Shift</span> &nbsp;—&nbsp; Run</div>
     <div><span class="k">Click</span> &nbsp;—&nbsp; Attack</div>
     <div><span class="k">I</span> &nbsp;—&nbsp; Inventory</div>
+    <div><span class="k">M</span> &nbsp;—&nbsp; Map</div>
     <div><span class="k">Esc</span> &nbsp;—&nbsp; Release mouse</div>
   </div>
   <button id="startBtn">DESCEND INTO DARKNESS</button>
@@ -514,6 +560,21 @@ canvas {
   <div class="inv-wrap" id="invBody"></div>
 </div>
 
+
+<div id="map" class="screen">
+  <div class="map-wrap">
+    <h2>DUNGEON MAP</h2>
+    <div class="map-level"></div>
+    <canvas id="mapCanvas"></canvas>
+    <div class="map-legend">
+      <span class="ml-you">@</span> you &nbsp;
+      <span class="ml-down">&gt;</span> stairs down &nbsp;
+      <span class="ml-up">&lt;</span> stairs up &nbsp;
+      <span class="ml-mon">m</span> monsters
+    </div>
+    <div class="map-hint">press m to close</div>
+  </div>
+</div>
 
 <div id="deathscreen" class="screen">
   <h1>YOU DIED</h1>

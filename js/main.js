@@ -8,6 +8,7 @@ import { initCharScreen } from './charscreen.js';
 import { spawnMonsters, clearMonsters, updateMonsters, updatePlayerAttack, tryPlayerAttack, aliveCount, updateGroundItems } from './monsters.js';
 import { startSwing, updateWeapon } from './weapon.js';
 import './inventory.js';
+import { updateExplored, resetExplored } from './map.js';
 
 /* Wire up start button → character creation */
 initCharScreen();
@@ -18,7 +19,7 @@ spawnMonsters();
 /* Click to attack */
 const canvas = document.getElementById('c');
 canvas.addEventListener('mousedown', (e) => {
-  if (e.button === 0 && gameState.started && !gameState.inventoryOpen) {
+  if (e.button === 0 && gameState.started && !gameState.inventoryOpen && !gameState.mapOpen) {
     startSwing();
     tryPlayerAttack();
   }
@@ -36,6 +37,7 @@ function doStairTransition(color, changeFn) {
   setTimeout(() => {
     clearMonsters();
     changeFn();
+    resetExplored();
     spawnMonsters();
     setTimeout(() => {
       stairFlash.classList.remove('active');
@@ -46,7 +48,7 @@ function doStairTransition(color, changeFn) {
 
 /* Stairs — NetHack style: '>' descend, '<' ascend */
 document.addEventListener('keydown', e => {
-  if (!gameState.started || gameState.inventoryOpen || _transitioning) return;
+  if (!gameState.started || gameState.inventoryOpen || gameState.mapOpen || _transitioning) return;
   const isDescend = e.key === '>' || (e.code === 'Period' && e.shiftKey);
   const isAscend  = e.key === '<' || (e.code === 'Comma'  && e.shiftKey);
   if (isDescend && _nearStair) {
@@ -70,7 +72,7 @@ let _nearStair = false;
 let _nearUpStair = false;
 
 function update(dt) {
-  if ((!gameState.locked && !gameState.mouseActive) || gameState.inventoryOpen) return;
+  if ((!gameState.locked && !gameState.mouseActive) || gameState.inventoryOpen || gameState.mapOpen) return;
 
   /* Movement */
   camera.getWorldDirection(_fwd);
@@ -114,6 +116,9 @@ function update(dt) {
   updateMonsters(dt);
   updatePlayerAttack(dt);
   updateGroundItems(dt);
+
+  /* Fog of war */
+  updateExplored();
 
   /* Torch flicker */
   for (const lt of torchLights) {
