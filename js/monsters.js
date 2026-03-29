@@ -26,46 +26,232 @@ const TIERS = [
 ];
 
 /* =========================================================
-   MONSTER SPRITES — pixel art on canvas
+   MONSTER SPRITES — detailed pixel art on canvas
    ========================================================= */
-function drawMonsterFace(type) {
-  const sz = 32;
+function drawMonster(name) {
+  const sz = 64;
   const cv = document.createElement('canvas');
   cv.width = cv.height = sz;
   const c = cv.getContext('2d');
-  const col = type.col;
+  c.imageSmoothingEnabled = false;
 
-  /* Body */
-  const s = type.size * sz;
-  const off = (sz - s) / 2;
-  c.fillStyle = col;
-  c.fillRect(off, sz - s, s, s);
+  /* Helper: pixel rect at scale (each "pixel" = 2px for 32-logical on 64-canvas) */
+  const P = 2;
+  function px(x, y, w, h, col) {
+    c.fillStyle = col;
+    c.fillRect(x * P, y * P, w * P, h * P);
+  }
 
-  /* Eyes */
-  const eyeY = sz - s + s * 0.3;
-  const eyeW = Math.max(2, s * 0.2);
-  const eyeGap = s * 0.15;
-  c.fillStyle = '#f00';
-  c.fillRect(sz / 2 - eyeGap - eyeW, eyeY, eyeW, eyeW);
-  c.fillRect(sz / 2 + eyeGap, eyeY, eyeW, eyeW);
-
-  /* Pupils */
-  c.fillStyle = '#ff0';
-  const pw = Math.max(1, eyeW * 0.5);
-  c.fillRect(sz / 2 - eyeGap - eyeW + (eyeW - pw) / 2, eyeY + (eyeW - pw) / 2, pw, pw);
-  c.fillRect(sz / 2 + eyeGap + (eyeW - pw) / 2, eyeY + (eyeW - pw) / 2, pw, pw);
+  switch (name) {
+    case 'rat': {
+      /* Brown furry rat with beady red eyes and long tail */
+      // body
+      px(10,22, 12,6, '#7a5a1e'); px(11,21, 10,1, '#8B6914');
+      px(9,23, 1,4, '#6a4a10'); px(22,23, 1,4, '#6a4a10');
+      // fur texture
+      px(12,23, 2,1, '#9a7a2e'); px(16,22, 2,1, '#9a7a2e'); px(14,24, 3,1, '#6a4a10');
+      // head
+      px(19,19, 7,6, '#8B6914'); px(20,18, 5,1, '#7a5a1e');
+      // ears
+      px(20,17, 2,2, '#a07030'); px(24,17, 2,2, '#a07030');
+      px(21,17, 1,1, '#6a4a10'); px(25,17, 1,1, '#6a4a10');
+      // eyes — glowing red
+      px(21,20, 2,2, '#f00'); px(24,20, 2,2, '#f00');
+      px(22,21, 1,1, '#ff4'); px(25,21, 1,1, '#ff4');
+      // nose
+      px(26,22, 1,1, '#ff8888');
+      // whiskers
+      px(27,21, 2,1, '#aaa'); px(27,23, 2,1, '#aaa');
+      // tail (curling behind)
+      px(6,24, 4,1, '#9a6a2a'); px(4,23, 2,1, '#9a6a2a');
+      px(3,22, 2,1, '#8a5a1a'); px(3,21, 1,2, '#8a5a1a');
+      // feet
+      px(12,28, 2,1, '#6a4a10'); px(18,28, 2,1, '#6a4a10');
+      break;
+    }
+    case 'bat': {
+      /* Dark bat with spread wings and red eyes */
+      // body
+      px(14,16, 4,6, '#444'); px(13,17, 6,4, '#555');
+      // head
+      px(14,13, 4,3, '#555'); px(15,12, 2,1, '#444');
+      // ears (pointy)
+      px(14,11, 1,2, '#555'); px(19,11, 1,2, '#555');
+      px(13,10, 1,2, '#444'); px(20,10, 1,2, '#444');
+      // eyes — bright red glow
+      px(14,14, 2,1, '#f00'); px(17,14, 2,1, '#f00');
+      px(15,14, 1,1, '#ff0'); px(18,14, 1,1, '#ff0');
+      // fangs
+      px(15,16, 1,1, '#fff'); px(17,16, 1,1, '#fff');
+      // wings spread wide
+      px(7,15, 7,2, '#3a3a3a'); px(18,15, 7,2, '#3a3a3a');
+      px(4,14, 4,3, '#333'); px(24,14, 4,3, '#333');
+      px(2,13, 3,3, '#2a2a2a'); px(27,13, 3,3, '#2a2a2a');
+      // wing fingers
+      px(3,12, 1,2, '#333'); px(6,13, 1,2, '#333');
+      px(28,12, 1,2, '#333'); px(25,13, 1,2, '#333');
+      // wing membrane texture
+      px(5,15, 2,1, '#444'); px(9,16, 1,1, '#444');
+      px(25,15, 2,1, '#444'); px(22,16, 1,1, '#444');
+      break;
+    }
+    case 'kobold': {
+      /* Green scaly humanoid with yellow eyes and a spear */
+      // body
+      px(12,16, 8,10, '#3a6a3a'); px(13,15, 6,1, '#4a7a4a');
+      // scales texture
+      px(14,18, 2,1, '#2a5a2a'); px(17,20, 2,1, '#2a5a2a');
+      px(13,22, 2,1, '#2a5a2a'); px(16,17, 1,1, '#4a8a4a');
+      // head
+      px(13,10, 6,6, '#4a7a4a'); px(14,9, 4,1, '#3a6a3a');
+      // snout
+      px(19,12, 2,3, '#4a7a4a'); px(21,13, 1,1, '#3a5a3a');
+      // eyes — yellow menacing
+      px(15,11, 2,2, '#ff0'); px(18,11, 2,2, '#ff0');
+      px(15,12, 1,1, '#000'); px(18,12, 1,1, '#000');
+      // teeth
+      px(19,14, 1,1, '#fff'); px(20,14, 1,1, '#fff');
+      // arms
+      px(10,17, 2,5, '#3a6a3a'); px(20,17, 2,5, '#3a6a3a');
+      // claws
+      px(9,22, 1,1, '#cc8'); px(10,22, 1,1, '#cc8');
+      px(21,22, 1,1, '#cc8'); px(22,22, 1,1, '#cc8');
+      // legs
+      px(13,26, 2,3, '#3a6a3a'); px(17,26, 2,3, '#3a6a3a');
+      // feet
+      px(12,29, 3,1, '#2a5a2a'); px(17,29, 3,1, '#2a5a2a');
+      // spear (held in right hand)
+      px(22,8, 1,16, '#864'); px(22,7, 1,1, '#ccc'); px(22,6, 1,2, '#aaa');
+      break;
+    }
+    case 'goblin': {
+      /* Larger green brute with tusks, armor scraps, glowing eyes */
+      // body (armored)
+      px(11,14, 10,12, '#2a6644'); px(12,13, 8,1, '#2a5a3a');
+      // armor scraps
+      px(12,16, 8,3, '#665533'); px(13,15, 6,1, '#554422');
+      px(12,19, 3,2, '#665533'); px(17,19, 3,2, '#665533');
+      // belt
+      px(12,21, 8,1, '#886644'); px(15,21, 2,1, '#aa8844');
+      // head
+      px(12,7, 8,7, '#3a7a5a'); px(13,6, 6,1, '#2a6a4a');
+      // brow ridge
+      px(12,8, 8,1, '#2a5a3a');
+      // eyes — orange menacing glow
+      px(14,9, 2,2, '#f80'); px(18,9, 2,2, '#f80');
+      px(14,10, 1,1, '#ff0'); px(18,10, 1,1, '#ff0');
+      // nose
+      px(16,11, 1,1, '#2a5a3a');
+      // tusks
+      px(13,13, 1,2, '#eed'); px(18,13, 1,2, '#eed');
+      // ears (pointed)
+      px(10,8, 2,2, '#3a7a5a'); px(20,8, 2,2, '#3a7a5a');
+      px(9,9, 1,1, '#2a6a4a'); px(22,9, 1,1, '#2a6a4a');
+      // arms
+      px(8,15, 3,7, '#2a6644'); px(21,15, 3,7, '#2a6644');
+      // fists
+      px(8,22, 3,2, '#3a7a5a'); px(21,22, 3,2, '#3a7a5a');
+      // legs
+      px(13,26, 3,3, '#2a5a3a'); px(17,26, 3,3, '#2a5a3a');
+      // feet
+      px(12,29, 4,1, '#223'); px(17,29, 4,1, '#223');
+      // weapon — crude club
+      px(7,10, 1,14, '#654'); px(6,8, 3,3, '#876'); px(6,9, 1,1, '#555');
+      break;
+    }
+    case 'skeleton': {
+      /* Bone-white skeleton with hollow eye sockets and sword */
+      // ribcage
+      px(13,14, 6,7, '#111'); // dark cavity
+      px(12,14, 1,7, '#ddd'); px(19,14, 1,7, '#ddd'); // sides
+      px(13,14, 6,1, '#ddd'); px(13,17, 6,1, '#ddd'); px(13,20, 6,1, '#ddd'); // ribs
+      // spine
+      px(15,14, 2,10, '#ccc');
+      // skull
+      px(12,6, 8,8, '#eee'); px(13,5, 6,1, '#ddd');
+      // eye sockets — deep black with red pinpoints
+      px(13,8, 3,3, '#111'); px(17,8, 3,3, '#111');
+      px(14,9, 1,1, '#f44'); px(18,9, 1,1, '#f44');
+      // nose hole
+      px(15,11, 2,1, '#333');
+      // teeth / jaw
+      px(13,12, 6,1, '#ddd');
+      px(13,13, 1,1, '#ccc'); px(15,13, 1,1, '#ccc');
+      px(17,13, 1,1, '#ccc'); px(19,13, 1,1, '#ccc');
+      // arms (bone)
+      px(10,15, 2,1, '#ddd'); px(9,16, 1,6, '#ccc'); px(10,16, 1,6, '#ccc');
+      px(20,15, 2,1, '#ddd'); px(21,16, 1,6, '#ccc'); px(22,16, 1,6, '#ccc');
+      // hands
+      px(8,22, 2,1, '#ddd'); px(22,22, 2,1, '#ddd');
+      // pelvis
+      px(13,24, 6,1, '#ccc');
+      // legs
+      px(13,25, 2,4, '#ccc'); px(17,25, 2,4, '#ccc');
+      // feet
+      px(12,29, 3,1, '#bbb'); px(17,29, 3,1, '#bbb');
+      // rusty sword
+      px(7,9, 1,14, '#aaa'); px(7,8, 1,1, '#ccc'); px(6,22, 3,1, '#886644');
+      break;
+    }
+    case 'orc': {
+      /* Big red-brown orc with heavy armor, fangs, and a massive axe */
+      // body (wide, heavy)
+      px(9,13, 14,14, '#8a3333'); px(10,12, 12,1, '#7a2a2a');
+      // chest armor
+      px(10,14, 12,6, '#555'); px(11,14, 10,1, '#777');
+      px(15,15, 2,4, '#666'); // center plate
+      px(11,18, 4,2, '#444'); px(17,18, 4,2, '#444');
+      // head (big)
+      px(11,4, 10,9, '#9a4040'); px(12,3, 8,1, '#8a3333');
+      // brow (heavy)
+      px(11,6, 10,2, '#7a2a2a');
+      // eyes — burning orange/red
+      px(13,7, 3,2, '#f40'); px(18,7, 3,2, '#f40');
+      px(14,8, 1,1, '#ff0'); px(19,8, 1,1, '#ff0');
+      // nose
+      px(15,9, 2,2, '#7a2a2a');
+      // fangs (big, from lower jaw)
+      px(13,12, 2,2, '#eed'); px(19,12, 2,2, '#eed');
+      px(14,12, 1,1, '#fff'); px(20,12, 1,1, '#fff');
+      // ears
+      px(9,6, 2,3, '#9a4040'); px(21,6, 2,3, '#9a4040');
+      // arms (thick)
+      px(6,14, 3,8, '#8a3333'); px(23,14, 3,8, '#8a3333');
+      // bracers
+      px(6,18, 3,2, '#555'); px(23,18, 3,2, '#555');
+      // fists
+      px(5,22, 4,2, '#9a4040'); px(23,22, 4,2, '#9a4040');
+      // belt
+      px(10,20, 12,1, '#886644'); px(15,20, 2,1, '#ffcc44');
+      // legs
+      px(12,27, 3,3, '#7a2a2a'); px(17,27, 3,3, '#7a2a2a');
+      // boots
+      px(11,29, 4,2, '#333'); px(17,29, 4,2, '#333');
+      // massive axe
+      px(4,5, 1,18, '#864');  // handle
+      px(1,5, 4,2, '#888');   // axe head top
+      px(1,7, 3,3, '#999');   // axe blade
+      px(0,6, 1,3, '#aaa');   // edge
+      px(1,5, 1,1, '#bbb');   // highlight
+      break;
+    }
+    default: {
+      px(8,8, 16,16, type.col);
+      px(10,12, 3,3, '#f00'); px(19,12, 3,3, '#f00');
+    }
+  }
 
   return cv;
 }
 
 function makeMonsterSprite(type) {
-  const cv = drawMonsterFace(type);
+  const cv = drawMonster(type.name);
   const tex = new THREE.CanvasTexture(cv);
   tex.magFilter = THREE.NearestFilter;
   tex.minFilter = THREE.NearestFilter;
   const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
   const sprite = new THREE.Sprite(mat);
-  sprite.scale.set(type.size, type.size, 1);
+  sprite.scale.set(type.size * 1.4, type.size * 1.4, 1);
   return sprite;
 }
 
@@ -102,6 +288,7 @@ export function spawnMonsters() {
   for (const m of monsters) {
     scene.remove(m.sprite);
     scene.remove(m.hpBar.sprite);
+    if (m.glow) scene.remove(m.glow);
   }
   monsters.length = 0;
 
@@ -132,6 +319,12 @@ export function spawnMonsters() {
       hpBar.sprite.visible = false;
       scene.add(hpBar.sprite);
 
+      /* Faint eye glow — visible in dark corridors */
+      const glowCol = type.name === 'skeleton' ? 0xff4444 : 0xff6600;
+      const glow = new THREE.PointLight(glowCol, 0, 3, 2);
+      glow.position.set(mx, type.size * 0.7, mz);
+      scene.add(glow);
+
       monsters.push({
         type,
         hp: type.hp,
@@ -140,10 +333,12 @@ export function spawnMonsters() {
         z: mz,
         sprite,
         hpBar,
+        glow,
         state: 'idle',       // idle, chase, attack
         atkCooldown: 0,
         wanderDir: Math.random() * Math.PI * 2,
         wanderTimer: 1 + Math.random() * 3,
+        bobPhase: Math.random() * Math.PI * 2,
         dead: false,
       });
 
@@ -198,9 +393,18 @@ export function updateMonsters(dt) {
       moveToward(m, m.x + wx, m.z + wz, m.type.speed * 0.3 * dt);
     }
 
+    /* Bob animation */
+    m.bobPhase += dt * (m.state === 'chase' ? 8 : 2.5);
+    const bob = Math.sin(m.bobPhase) * (m.state === 'chase' ? 0.06 : 0.03);
+    const baseY = m.type.size * 0.7;
+
     /* Update sprite position */
-    m.sprite.position.set(m.x, m.type.size / 2, m.z);
-    m.hpBar.sprite.position.set(m.x, m.type.size + 0.1, m.z);
+    m.sprite.position.set(m.x, baseY + bob, m.z);
+    m.hpBar.sprite.position.set(m.x, m.type.size * 1.4 + 0.1 + bob, m.z);
+
+    /* Eye glow — brighter when aggroed */
+    m.glow.position.set(m.x, m.type.size * 0.7, m.z);
+    m.glow.intensity = m.state === 'idle' ? 0.3 : m.state === 'chase' ? 1.2 : 1.8;
 
     /* Show HP bar only when damaged or chasing */
     m.hpBar.sprite.visible = m.hp < m.maxHp || m.state === 'chase' || m.state === 'attack';
@@ -326,6 +530,7 @@ function killMonster(m) {
   m.dead = true;
   scene.remove(m.sprite);
   scene.remove(m.hpBar.sprite);
+  scene.remove(m.glow);
 
   /* Grant XP */
   character.xp += m.type.xp;
