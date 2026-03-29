@@ -232,13 +232,13 @@ canvas {
 
 /* ── Inventory overlay ── */
 #inventory {
-  background: rgba(0,0,0,0.94);
+  background: rgba(0,0,0,0.92);
   display: none;
   color: #bbb;
 }
 #inventory .inv-wrap {
-  width: min(480px, 94vw);
-  max-height: 80vh;
+  width: min(540px, 94vw);
+  max-height: 85vh;
   overflow-y: auto;
 }
 #inventory h2 {
@@ -246,33 +246,67 @@ canvas {
   color: #f80;
   letter-spacing: 3px;
   text-align: center;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
-#inventory .inv-cat {
+#inventory .inv-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  padding: 4px;
+}
+#inventory .inv-tile {
+  position: relative;
+  background: #1a1a1a;
+  border: 2px solid #333;
+  border-radius: 4px;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+  transition: border-color 0.12s;
+}
+#inventory .inv-tile:hover {
+  border-color: #f80;
+  background: #221a10;
+}
+#inventory .inv-tile canvas {
+  image-rendering: pixelated;
+  width: 40px; height: 40px;
+}
+#inventory .inv-tile .slot-letter {
+  position: absolute;
+  top: 2px; left: 5px;
+  font-size: 10px;
+  color: #666;
+}
+#inventory .inv-tile .item-name {
+  font-size: 9px;
+  color: #888;
+  text-align: center;
+  margin-top: 2px;
+  line-height: 1.1;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 2px;
+}
+#inventory .inv-cat-header {
+  grid-column: 1 / -1;
   color: #f80;
-  font-size: 13px;
+  font-size: 12px;
   letter-spacing: 2px;
-  margin: 14px 0 4px;
+  padding: 8px 0 2px;
   border-bottom: 1px solid #2a2a2a;
-  padding-bottom: 3px;
 }
-#inventory .inv-item {
-  font-size: 14px;
-  padding: 3px 0 3px 12px;
-  color: #ccc;
-}
-#inventory .inv-slot { color: #fff; }
-#inventory .inv-sym-Weapons  { color: #6cf; }
-#inventory .inv-sym-Armor    { color: #ca6; }
-#inventory .inv-sym-Potions  { color: #f6f; }
-#inventory .inv-sym-Scrolls  { color: #fff; }
-#inventory .inv-sym-Food     { color: #8f8; }
-#inventory .inv-sym-Tools    { color: #aaa; }
+#inventory .inv-cat-header:first-child { padding-top: 0; }
 #inventory .inv-hint {
   text-align: center;
-  color: #555;
+  color: #444;
   font-size: 11px;
-  margin-top: 18px;
+  margin-top: 14px;
   letter-spacing: 1px;
 }
 #inventory .inv-empty {
@@ -1072,6 +1106,195 @@ let inventoryOpen = false;
 const elInventory = document.getElementById('inventory');
 const elInvBody   = document.getElementById('invBody');
 
+/* ── Procedural item icons (32×32 pixel art) ── */
+const ICON_SZ = 32;
+
+const CAT_COLORS = {
+  Weapons: '#6cf', Armor: '#ca6', Potions: '#f6f',
+  Scrolls: '#eee', Food: '#8f8', Tools: '#aaa',
+};
+
+function drawIcon(id) {
+  const cv  = document.createElement('canvas');
+  cv.width = cv.height = ICON_SZ;
+  const c = cv.getContext('2d');
+  const S = ICON_SZ;
+  const col = CAT_COLORS[ITEMS[id].cat] || '#fff';
+
+  c.lineCap = 'round'; c.lineJoin = 'round';
+
+  switch (id) {
+    case 'longsword':
+      c.strokeStyle = '#ccc'; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(8,24); c.lineTo(24,4); c.stroke();  // blade
+      c.strokeStyle = '#864'; c.lineWidth = 3;
+      c.beginPath(); c.moveTo(6,26); c.lineTo(10,22); c.stroke(); // grip
+      c.strokeStyle = '#aa8'; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(11,20); c.lineTo(17,17); c.stroke(); // guard
+      c.beginPath(); c.moveTo(14,23); c.lineTo(8,17); c.stroke();
+      break;
+    case 'shortsword':
+      c.strokeStyle = '#ccc'; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(10,22); c.lineTo(22,8); c.stroke();
+      c.strokeStyle = '#864'; c.lineWidth = 3;
+      c.beginPath(); c.moveTo(8,24); c.lineTo(11,21); c.stroke();
+      c.strokeStyle = '#aa8'; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(12,19); c.lineTo(16,17); c.stroke();
+      break;
+    case 'dagger':
+      c.strokeStyle = '#bbb'; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(14,22); c.lineTo(22,10); c.stroke();
+      c.strokeStyle = '#864'; c.lineWidth = 3;
+      c.beginPath(); c.moveTo(12,24); c.lineTo(15,21); c.stroke();
+      break;
+    case 'staff':
+      c.strokeStyle = '#965'; c.lineWidth = 3;
+      c.beginPath(); c.moveTo(16,28); c.lineTo(16,6); c.stroke();
+      c.fillStyle = '#aaf'; c.beginPath(); c.arc(16,5,4,0,Math.PI*2); c.fill();
+      c.fillStyle = '#ccf'; c.beginPath(); c.arc(16,5,2,0,Math.PI*2); c.fill();
+      break;
+    case 'bow':
+      c.strokeStyle = '#965'; c.lineWidth = 2;
+      c.beginPath(); c.arc(20, 16, 12, Math.PI*0.65, Math.PI*1.35); c.stroke();
+      c.strokeStyle = '#ccc'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(11,5); c.lineTo(11,27); c.stroke(); // string
+      break;
+    case 'mace':
+      c.strokeStyle = '#864'; c.lineWidth = 3;
+      c.beginPath(); c.moveTo(14,26); c.lineTo(14,12); c.stroke();
+      c.fillStyle = '#999'; c.beginPath(); c.arc(14,9,5,0,Math.PI*2); c.fill();
+      c.fillStyle = '#bbb'; c.beginPath(); c.arc(14,9,3,0,Math.PI*2); c.fill();
+      break;
+    case 'chainmail':
+      c.strokeStyle = '#999'; c.lineWidth = 1;
+      for (let row = 0; row < 4; row++)
+        for (let col2 = 0; col2 < 4; col2++) {
+          const ox = 7 + col2*5 + (row%2)*2.5, oy = 8 + row*5;
+          c.beginPath(); c.arc(ox,oy,2.5,0,Math.PI*2); c.stroke();
+        }
+      c.strokeStyle = '#777'; c.lineWidth = 1.5;
+      c.beginPath(); c.moveTo(10,6); c.lineTo(16,4); c.lineTo(22,6); c.stroke(); // shoulders
+      break;
+    case 'leather':
+      c.fillStyle = '#864';
+      c.beginPath();
+      c.moveTo(10,6); c.lineTo(22,6); c.lineTo(24,12); c.lineTo(24,24);
+      c.lineTo(8,24); c.lineTo(8,12); c.closePath(); c.fill();
+      c.strokeStyle = '#653'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(16,6); c.lineTo(16,24); c.stroke(); // center line
+      c.beginPath(); c.moveTo(12,12); c.lineTo(20,12); c.stroke();
+      break;
+    case 'robe':
+      c.fillStyle = '#448';
+      c.beginPath();
+      c.moveTo(10,4); c.lineTo(22,4); c.lineTo(26,28); c.lineTo(6,28); c.closePath();
+      c.fill();
+      c.strokeStyle = '#336'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(16,4); c.lineTo(16,28); c.stroke();
+      c.fillStyle = '#669'; // collar
+      c.fillRect(12, 4, 8, 3);
+      break;
+    case 'cloak':
+      c.fillStyle = '#363';
+      c.beginPath();
+      c.moveTo(8,6); c.quadraticCurveTo(16,2,24,6);
+      c.lineTo(26,26); c.quadraticCurveTo(16,22,6,26);
+      c.closePath(); c.fill();
+      c.strokeStyle = '#2a2'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(16,4); c.lineTo(16,24); c.stroke();
+      break;
+    case 'shield':
+      c.fillStyle = '#865';
+      c.beginPath();
+      c.moveTo(16,4); c.lineTo(26,10); c.lineTo(24,24);
+      c.quadraticCurveTo(16,30,8,24);
+      c.lineTo(6,10); c.closePath(); c.fill();
+      c.strokeStyle = '#ca8'; c.lineWidth = 1.5;
+      c.beginPath(); c.moveTo(16,6); c.lineTo(16,26); c.stroke();
+      c.beginPath(); c.moveTo(8,14); c.lineTo(24,14); c.stroke();
+      break;
+    case 'healPotion':
+      c.fillStyle = '#f24';
+      c.beginPath();
+      c.moveTo(12,14); c.lineTo(12,24); c.quadraticCurveTo(12,28,16,28);
+      c.quadraticCurveTo(20,28,20,24); c.lineTo(20,14); c.closePath(); c.fill();
+      c.fillStyle = '#ccc'; // neck
+      c.fillRect(13,10,6,5);
+      c.fillStyle = '#aaa'; // cork
+      c.fillRect(13,8,6,3);
+      c.fillStyle = '#f68'; // highlight
+      c.fillRect(14,16,2,6);
+      break;
+    case 'manaPotion':
+      c.fillStyle = '#44f';
+      c.beginPath();
+      c.moveTo(12,14); c.lineTo(12,24); c.quadraticCurveTo(12,28,16,28);
+      c.quadraticCurveTo(20,28,20,24); c.lineTo(20,14); c.closePath(); c.fill();
+      c.fillStyle = '#ccc';
+      c.fillRect(13,10,6,5);
+      c.fillStyle = '#aaa';
+      c.fillRect(13,8,6,3);
+      c.fillStyle = '#88f';
+      c.fillRect(14,16,2,6);
+      break;
+    case 'foodRation':
+      c.fillStyle = '#a86';
+      c.beginPath();
+      c.ellipse(16,18,9,6,0,0,Math.PI*2); c.fill();
+      c.strokeStyle = '#865'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(8,18); c.lineTo(24,18); c.stroke();
+      // top crust
+      c.fillStyle = '#c97';
+      c.beginPath();
+      c.ellipse(16,16,8,4,0,Math.PI,Math.PI*2); c.fill();
+      break;
+    case 'scrollTele':
+      c.fillStyle = '#eed';
+      c.fillRect(10,6,12,20);
+      c.fillStyle = '#ddc';
+      c.fillRect(8,6,16,3); c.fillRect(8,23,16,3); // rolled ends
+      c.strokeStyle = '#668'; c.lineWidth = 1;
+      for (let y = 12; y < 22; y += 3) {
+        c.beginPath(); c.moveTo(12,y); c.lineTo(20,y); c.stroke();
+      }
+      c.fillStyle = '#a6f'; // magic glyph
+      c.beginPath(); c.arc(16,17,2,0,Math.PI*2); c.fill();
+      break;
+    case 'scrollLight':
+      c.fillStyle = '#eed';
+      c.fillRect(10,6,12,20);
+      c.fillStyle = '#ddc';
+      c.fillRect(8,6,16,3); c.fillRect(8,23,16,3);
+      c.strokeStyle = '#668'; c.lineWidth = 1;
+      for (let y = 12; y < 22; y += 3) {
+        c.beginPath(); c.moveTo(12,y); c.lineTo(20,y); c.stroke();
+      }
+      c.fillStyle = '#ff4';
+      c.beginPath(); c.arc(16,17,2,0,Math.PI*2); c.fill();
+      break;
+    case 'torch':
+      c.strokeStyle = '#864'; c.lineWidth = 3;
+      c.beginPath(); c.moveTo(16,28); c.lineTo(16,14); c.stroke();
+      c.fillStyle = '#f80';
+      c.beginPath(); c.moveTo(16,14); c.lineTo(10,8); c.lineTo(16,3);
+      c.lineTo(22,8); c.closePath(); c.fill();
+      c.fillStyle = '#ff4';
+      c.beginPath(); c.moveTo(16,13); c.lineTo(13,9); c.lineTo(16,5);
+      c.lineTo(19,9); c.closePath(); c.fill();
+      break;
+    case 'pickaxe':
+      c.strokeStyle = '#864'; c.lineWidth = 3;
+      c.beginPath(); c.moveTo(8,26); c.lineTo(22,8); c.stroke(); // handle
+      c.strokeStyle = '#999'; c.lineWidth = 2.5;
+      c.beginPath(); c.moveTo(18,6); c.lineTo(26,10); c.stroke(); // head
+      c.beginPath(); c.moveTo(20,4); c.lineTo(24,12); c.stroke();
+      break;
+    default:
+      c.fillStyle = col; c.fillRect(8,8,16,16);
+  }
+  return cv;
+}
+
 function renderInventory() {
   const inv = character.inventory;
   if (inv.length === 0) {
@@ -1089,18 +1312,51 @@ function renderInventory() {
     groups[cat].push(entry);
   }
 
-  let html = `<h2>INVENTORY — ${character.name} the ${character.role}</h2>`;
+  /* Build DOM */
+  elInvBody.innerHTML = '';
+
+  const h = document.createElement('h2');
+  h.textContent = `INVENTORY — ${character.name} the ${character.role}`;
+  elInvBody.appendChild(h);
+
+  const grid = document.createElement('div');
+  grid.className = 'inv-grid';
+
   for (const cat of CAT_ORDER) {
     if (!groups[cat]) continue;
-    html += `<div class="inv-cat">${cat}</div>`;
+    const hdr = document.createElement('div');
+    hdr.className = 'inv-cat-header';
+    hdr.textContent = cat;
+    grid.appendChild(hdr);
+
     for (const e of groups[cat]) {
-      html += `<div class="inv-item">` +
-        `<span class="inv-slot">${e.slot}</span> - ${e.item.name} ` +
-        `<span class="inv-sym-${cat}">${e.item.sym}</span></div>`;
+      const tile = document.createElement('div');
+      tile.className = 'inv-tile';
+      tile.title = e.item.name;
+
+      const letter = document.createElement('span');
+      letter.className = 'slot-letter';
+      letter.textContent = e.slot;
+      tile.appendChild(letter);
+
+      const icon = drawIcon(e.id);
+      tile.appendChild(icon);
+
+      const label = document.createElement('div');
+      label.className = 'item-name';
+      /* Strip leading "a "/"an " for compact display */
+      label.textContent = e.item.name.replace(/^an?\s+/, '');
+      tile.appendChild(label);
+
+      grid.appendChild(tile);
     }
   }
-  html += `<div class="inv-hint">press i to close</div>`;
-  elInvBody.innerHTML = html;
+  elInvBody.appendChild(grid);
+
+  const hint = document.createElement('div');
+  hint.className = 'inv-hint';
+  hint.textContent = 'press i to close';
+  elInvBody.appendChild(hint);
 }
 
 function toggleInventory() {
