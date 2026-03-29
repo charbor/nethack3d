@@ -948,7 +948,10 @@ canvas.addEventListener('click', () => {
   }
 });
 
-elPaused.addEventListener('click', resumeGame);
+elPaused.addEventListener('click', (e) => {
+  e.stopPropagation();
+  resumeGame();
+});
 elPaused.style.cursor = 'pointer';
 
 /* Esc in fallback mode → release look, show paused */
