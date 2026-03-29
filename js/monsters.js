@@ -834,6 +834,270 @@ function clearGroundItems() {
   groundItems.length = 0;
 }
 
+/* =========================================================
+   CHESTS — spawn in some rooms, opened with 'l' (loot)
+   ========================================================= */
+const chests = [];
+
+/* Loot tables by dungeon depth */
+const CHEST_LOOT_COMMON = ['foodRation','healPotion','torch','dagger'];
+const CHEST_LOOT_UNCOMMON = ['shortsword','leather','cloak','shield','scrollLight','scrollTele','manaPotion'];
+const CHEST_LOOT_RARE = ['longsword','chainmail','mace','bow','pickaxe'];
+
+function rollChestLoot(dl) {
+  const items = [];
+  const count = 1 + Math.floor(Math.random() * 2) + (dl > 2 ? 1 : 0);
+  for (let i = 0; i < count; i++) {
+    const roll = Math.random();
+    let pool;
+    if (roll < 0.15 + dl * 0.03) pool = CHEST_LOOT_RARE;
+    else if (roll < 0.50) pool = CHEST_LOOT_UNCOMMON;
+    else pool = CHEST_LOOT_COMMON;
+    items.push(pool[Math.floor(Math.random() * pool.length)]);
+  }
+  return items;
+}
+
+/* Shared materials for chest construction */
+const _chestWood = new THREE.MeshPhongMaterial({ color: 0x1a1410, emissive: 0x050403, specular: 0x1a1510, shininess: 6 });
+const _chestIron = new THREE.MeshPhongMaterial({ color: 0x1c1c1c, emissive: 0x040404, specular: 0x3a3a3a, shininess: 25 });
+const _chestTrim = new THREE.MeshPhongMaterial({ color: 0x2a2218, emissive: 0x060504, specular: 0x4a4030, shininess: 18 });
+const _chestGold = new THREE.MeshPhongMaterial({ color: 0x6a5a20, emissive: 0x1a1408, specular: 0x8a7a40, shininess: 35 });
+const _chestRune = new THREE.MeshBasicMaterial({ color: 0x2a1a08, transparent: true, opacity: 0.3 });
+
+function _addChestBase(g) {
+  /* Main body — dark aged wood */
+  const base = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.32, 0.38), _chestWood);
+  base.position.y = 0.16;
+  g.add(base);
+
+  /* Iron corner brackets — 4 vertical edges */
+  const bracketGeo = new THREE.BoxGeometry(0.04, 0.34, 0.04);
+  for (const xOff of [-0.26, 0.26]) {
+    for (const zOff of [-0.18, 0.18]) {
+      const b = new THREE.Mesh(bracketGeo, _chestIron);
+      b.position.set(xOff, 0.17, zOff);
+      g.add(b);
+    }
+  }
+
+  /* Horizontal iron bands — 3 wrapping around */
+  const bandGeo = new THREE.BoxGeometry(0.57, 0.025, 0.40);
+  for (const yOff of [0.06, 0.18, 0.30]) {
+    const band = new THREE.Mesh(bandGeo, _chestIron);
+    band.position.y = yOff;
+    g.add(band);
+  }
+
+  /* Iron studs / rivets along bands */
+  const studGeo = new THREE.SphereGeometry(0.012, 4, 3);
+  for (const yOff of [0.06, 0.30]) {
+    for (let i = 0; i < 5; i++) {
+      const xPos = -0.22 + i * 0.11;
+      for (const zOff of [-0.19, 0.19]) {
+        const stud = new THREE.Mesh(studGeo, _chestIron);
+        stud.position.set(xPos, yOff, zOff);
+        g.add(stud);
+      }
+    }
+  }
+
+  /* Decorative front plate — tarnished gold/bronze */
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.14, 0.02), _chestTrim);
+  plate.position.set(0, 0.18, 0.20);
+  g.add(plate);
+
+  /* Etched rune marks on front plate */
+  const runeGeo = new THREE.PlaneGeometry(0.03, 0.08);
+  for (const xOff of [-0.04, 0.04]) {
+    const rune = new THREE.Mesh(runeGeo, _chestRune);
+    rune.position.set(xOff, 0.18, 0.212);
+    g.add(rune);
+  }
+
+  /* Base feet — small iron blocks */
+  const footGeo = new THREE.BoxGeometry(0.06, 0.03, 0.06);
+  for (const xOff of [-0.20, 0.20]) {
+    for (const zOff of [-0.12, 0.12]) {
+      const foot = new THREE.Mesh(footGeo, _chestIron);
+      foot.position.set(xOff, 0.015, zOff);
+      g.add(foot);
+    }
+  }
+}
+
+function buildChestMesh() {
+  const g = new THREE.Group();
+  _addChestBase(g);
+
+  /* Lid — arched top (scaled box) */
+  const lid = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.08, 0.39), _chestWood);
+  lid.position.y = 0.36;
+  g.add(lid);
+  const lidCap = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.195, 0.195, 0.56, 8, 1, false, 0, Math.PI),
+    _chestWood
+  );
+  lidCap.rotation.z = Math.PI / 2;
+  lidCap.position.y = 0.38;
+  g.add(lidCap);
+
+  /* Lid iron band */
+  const lidBand = new THREE.Mesh(new THREE.BoxGeometry(0.57, 0.025, 0.40), _chestIron);
+  lidBand.position.y = 0.35;
+  g.add(lidBand);
+
+  /* Lock — ornate gold keyhole */
+  const lockPlate = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 0.015, 6), _chestGold);
+  lockPlate.rotation.x = Math.PI / 2;
+  lockPlate.position.set(0, 0.24, 0.20);
+  g.add(lockPlate);
+  const keyhole = new THREE.Mesh(
+    new THREE.BoxGeometry(0.008, 0.02, 0.02),
+    new THREE.MeshBasicMaterial({ color: 0x000000 })
+  );
+  keyhole.position.set(0, 0.24, 0.21);
+  g.add(keyhole);
+
+  /* Hinges on back */
+  const hingeGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.04, 5);
+  for (const xOff of [-0.18, 0.18]) {
+    const hinge = new THREE.Mesh(hingeGeo, _chestIron);
+    hinge.rotation.x = Math.PI / 2;
+    hinge.position.set(xOff, 0.33, -0.19);
+    g.add(hinge);
+  }
+
+  return g;
+}
+
+function buildOpenChestMesh() {
+  const g = new THREE.Group();
+  _addChestBase(g);
+
+  /* Open lid — tilted back */
+  const lidGroup = new THREE.Group();
+  const lid = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.08, 0.39), _chestWood);
+  lid.position.y = 0.04;
+  lidGroup.add(lid);
+  const lidCap = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.195, 0.195, 0.56, 8, 1, false, 0, Math.PI),
+    _chestWood
+  );
+  lidCap.rotation.z = Math.PI / 2;
+  lidCap.position.y = 0.06;
+  lidGroup.add(lidCap);
+  const lidBand = new THREE.Mesh(new THREE.BoxGeometry(0.57, 0.025, 0.40), _chestIron);
+  lidBand.position.y = 0.03;
+  lidGroup.add(lidBand);
+
+  lidGroup.position.set(0, 0.32, -0.19);
+  lidGroup.rotation.x = -1.2;
+  g.add(lidGroup);
+
+  /* Hinges */
+  const hingeGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.04, 5);
+  for (const xOff of [-0.18, 0.18]) {
+    const hinge = new THREE.Mesh(hingeGeo, _chestIron);
+    hinge.rotation.x = Math.PI / 2;
+    hinge.position.set(xOff, 0.33, -0.19);
+    g.add(hinge);
+  }
+
+  /* Inner glow — faint gold light from inside */
+  const innerGlow = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.35, 0.25),
+    new THREE.MeshBasicMaterial({ color: 0x3a2a08, transparent: true, opacity: 0.15 })
+  );
+  innerGlow.rotation.x = -Math.PI / 2;
+  innerGlow.position.y = 0.33;
+  g.add(innerGlow);
+
+  return g;
+}
+
+function spawnChests() {
+  const rooms = getRooms();
+  for (let i = 1; i < rooms.length - 1; i++) {
+    if (Math.random() > 0.3) continue; /* ~30% chance per room */
+    const room = rooms[i];
+    const cx = room.x + 1 + Math.floor(Math.random() * (room.w - 2)) + 0.5;
+    const cz = room.y + 1 + Math.floor(Math.random() * (room.h - 2)) + 0.5;
+
+    const mesh = buildChestMesh();
+    mesh.position.set(cx, 0, cz);
+    mesh.rotation.y = Math.random() * Math.PI * 2;
+    scene.add(mesh);
+
+    /* Faint amber glow */
+    const light = new THREE.PointLight(0x6a5a20, 0.25, 2.5, 2);
+    light.position.set(cx, 0.4, cz);
+    scene.add(light);
+
+    chests.push({
+      x: cx, z: cz,
+      mesh, light, opened: false,
+      loot: rollChestLoot(gameState.dungeonLevel),
+    });
+  }
+}
+
+function clearChests() {
+  for (const ch of chests) {
+    scene.remove(ch.mesh);
+    scene.remove(ch.light);
+  }
+  chests.length = 0;
+}
+
+function openNearbyChest() {
+  if (!player.pos) return;
+  for (const ch of chests) {
+    if (ch.opened) continue;
+    if (Math.hypot(player.pos.x - ch.x, player.pos.z - ch.z) < 1.2) {
+      ch.opened = true;
+
+      /* Swap to open mesh */
+      const rot = ch.mesh.rotation.y;
+      scene.remove(ch.mesh);
+      ch.mesh = buildOpenChestMesh();
+      ch.mesh.position.set(ch.x, 0, ch.z);
+      ch.mesh.rotation.y = rot;
+      scene.add(ch.mesh);
+
+      /* Spawn loot on ground around chest */
+      if (ch.loot.length === 0) {
+        showMsg('The chest is empty.');
+        return;
+      }
+      showMsg('You open the chest!');
+      for (let i = 0; i < ch.loot.length; i++) {
+        const id = ch.loot[i];
+        const item = ITEMS[id];
+        if (!item) continue;
+        const angle = (i / ch.loot.length) * Math.PI * 2 + Math.random() * 0.5;
+        const dist = 0.4 + Math.random() * 0.3;
+        spawnGroundItem(ch.x + Math.cos(angle) * dist, ch.z + Math.sin(angle) * dist, id, item);
+        setTimeout(() => {
+          showMsg('The chest contained ' + item.name + '!');
+        }, 400 * (i + 1));
+      }
+
+      /* Brighten light briefly then dim */
+      ch.light.intensity = 1.0;
+      setTimeout(() => { ch.light.intensity = 0.15; }, 800);
+      return;
+    }
+  }
+}
+
+/* Listen for 'l' key (loot) to open chests */
+document.addEventListener('keydown', function(e) {
+  if (e.code === 'KeyL' && gameState.started && !gameState.inventoryOpen) {
+    openNearbyChest();
+  }
+});
+
 /* Store original colors so we can restore after hit flash */
 function cacheColors(group) {
   group.traverse(ch => {
@@ -850,6 +1114,7 @@ export function clearMonsters() {
   }
   monsters.length = 0;
   clearGroundItems();
+  clearChests();
 }
 
 export function spawnMonsters() {
@@ -907,6 +1172,9 @@ export function spawnMonsters() {
       updateHpBar(hpBar, 1);
     }
   }
+
+  /* Spawn chests in some rooms */
+  spawnChests();
 }
 
 /* =========================================================
