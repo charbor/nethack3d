@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NetHack 3D</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #000;
+  overflow: hidden;
+  user-select: none;
+}
+
+canvas {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* ── Crosshair ── */
+#crosshair {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 18px; height: 18px;
+  pointer-events: none;
+}
+#crosshair::before, #crosshair::after {
+  content: '';
+  position: absolute;
+  background: rgba(255,255,255,0.82);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+}
+#crosshair::before { width: 2px; height: 18px; }
+#crosshair::after  { width: 18px; height: 2px; }
+
+/* ── Status bar ── */
+#status {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: rgba(0,0,0,0.65);
+  color: #bbb;
+  font: 13px/30px 'Courier New', monospace;
+  padding: 0 16px;
+  letter-spacing: 1px;
+  pointer-events: none;
+}
+#status .hi { color: #f80; }
+
+/* ── Overlays ── */
+.screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Courier New', monospace;
+  z-index: 10;
+}
+
+#overlay {
+  background: rgba(0,0,0,0.92);
+  color: #ccc;
+}
+#overlay h1 {
+  font-size: 58px;
+  color: #f80;
+  text-shadow: 0 0 28px #f60, 0 0 56px #f40;
+  letter-spacing: 6px;
+  margin-bottom: 6px;
+}
+.subtitle {
+  color: #555;
+  font-size: 13px;
+  letter-spacing: 4px;
+  margin-bottom: 38px;
+}
+.ctrls { margin-bottom: 38px; line-height: 2.2; font-size: 14px; text-align: center; }
+.ctrls .k { color: #f80; font-weight: bold; }
+#startBtn {
+  padding: 13px 46px;
+  background: #f80; color: #000;
+  border: none;
+  font: bold 17px 'Courier New', monospace;
+  letter-spacing: 3px;
+  cursor: pointer;
+}
+#startBtn:hover { background: #fa0; }
+
+#paused {
+  background: rgba(0,0,0,0.78);
+  color: #f80;
+  font-size: 28px;
+  letter-spacing: 4px;
+  display: none;
+}
+
+/* ── Character creation screen ── */
+#charscreen {
+  background: rgba(0,0,0,0.96);
+  display: none;
+  color: #bbb;
+  font-family: 'Courier New', monospace;
+}
+#charscreen .cs-wrap {
+  width: min(520px, 96vw);
+}
+#charscreen h2 {
+  font-size: 22px;
+  color: #f80;
+  letter-spacing: 4px;
+  margin-bottom: 6px;
+  text-align: center;
+}
+#charscreen .cs-progress {
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #555;
+  margin-bottom: 22px;
+}
+#charscreen .cs-progress .cur { color: #f80; }
+#charscreen .cs-label {
+  font-size: 12px;
+  color: #666;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+/* name input */
+#charscreen #nameInput {
+  background: #000;
+  border: 1px solid #444;
+  color: #f80;
+  font: 20px 'Courier New', monospace;
+  padding: 8px 12px;
+  width: 100%;
+  outline: none;
+  letter-spacing: 2px;
+  caret-color: #f80;
+  margin-bottom: 6px;
+}
+#charscreen #nameInput:focus { border-color: #f80; }
+/* option list */
+#charscreen .opt-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+#charscreen .opt {
+  padding: 9px 14px;
+  border: 1px solid #2a2a2a;
+  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  transition: border-color 0.1s;
+}
+#charscreen .opt:hover { border-color: #555; background: rgba(255,136,0,0.06); }
+#charscreen .opt.selected {
+  border-color: #f80;
+  background: rgba(255,136,0,0.12);
+  color: #fff;
+}
+#charscreen .opt .glyph {
+  color: #f80;
+  width: 14px;
+  flex-shrink: 0;
+  font-size: 13px;
+}
+#charscreen .opt .oname {
+  color: #ddd;
+  font-size: 15px;
+  font-weight: bold;
+  min-width: 90px;
+}
+#charscreen .opt .odesc { color: #666; font-size: 12px; }
+#charscreen .opt .ostatline {
+  margin-left: auto;
+  font-size: 11px;
+  color: #555;
+  white-space: nowrap;
+}
+/* summary stats */
+#charscreen .stat-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  margin-bottom: 14px;
+  text-align: center;
+}
+#charscreen .stat-cell .sname { font-size: 10px; color: #555; letter-spacing: 1px; }
+#charscreen .stat-cell .sval  { font-size: 18px; color: #f80; font-weight: bold; }
+#charscreen .summary-line {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 4px;
+}
+#charscreen .summary-line span { color: #f80; }
+/* nav buttons */
+#charscreen .cs-nav {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 18px;
+  gap: 12px;
+}
+#charscreen .cs-nav button {
+  flex: 1;
+  padding: 10px;
+  background: #111;
+  color: #888;
+  border: 1px solid #333;
+  font: 14px 'Courier New', monospace;
+  letter-spacing: 2px;
+  cursor: pointer;
+}
+#charscreen .cs-nav button:hover { border-color: #888; color: #ccc; }
+#charscreen .cs-nav button.primary {
+  background: #f80;
+  color: #000;
+  border-color: #f80;
+  font-weight: bold;
+}
+#charscreen .cs-nav button.primary:hover { background: #fa0; }
+#charscreen .cs-nav button:disabled { opacity: 0.3; cursor: default; }
+
+/* fallback mouse-capture hint */
+#hint {
+  display: none;
+  position: fixed;
+  top: 54%; left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255, 180, 50, 0.7);
+  font: 12px/1 'Courier New', monospace;
+  letter-spacing: 1px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* vignette */
+#vignette {
+  position: fixed; inset: 0;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.65) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+<div id="crosshair"></div>
+<div id="vignette"></div>
+<div id="status"><span id="statusText">&nbsp;</span></div>
+
+<div id="overlay" class="screen">
+  <h1>NETHACK 3D</h1>
+  <p class="subtitle">▼ &nbsp; A DUNGEON AWAITS &nbsp; ▼</p>
+  <div class="ctrls">
+    <div><span class="k">W A S D</span> &nbsp;—&nbsp; Move</div>
+    <div><span class="k">Mouse</span> &nbsp;—&nbsp; Look around</div>
+    <div><span class="k">Shift</span> &nbsp;—&nbsp; Run</div>
+    <div><span class="k">Esc</span> &nbsp;—&nbsp; Release mouse</div>
+  </div>
+  <button id="startBtn">DESCEND INTO DARKNESS</button>
+</div>
+
+<div id="paused" class="screen">— PAUSED — &nbsp; (click to resume)</div>
+<div id="hint"></div>
+
+<div id="charscreen" class="screen">
+  <div class="cs-wrap">
+    <h2>CHARACTER CREATION</h2>
+    <div class="cs-progress" id="csProg"></div>
+    <div id="csBody"></div>
+    <div class="cs-nav">
+      <button id="csBack">◀ BACK</button>
+      <button id="csNext" class="primary">NEXT ▶</button>
+    </div>
+  </div>
+</div>
+
+<!-- Three.js r163 global build (works on file://) -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.163.0/build/three.min.js"></script>
+
+<script>
+/* =========================================================
+   CONFIG
+   ========================================================= */
+const MAP_W  = 72;
+const MAP_H  = 72;
+const WALL_H = 3;     // blocks tall
+const EYE_H  = 1.65;
+const RADIUS = 0.28;
+const SPEED  = 4.5;
+const SPRINT = 8.5;
+
+/* =========================================================
+   CHARACTER DATA
+   ========================================================= */
+const RACES = {
+  Human:  { mod: { str:0, dex:0, con:0, int:0, wis:0, cha:1 }, desc: 'Versatile and adaptable' },
+  Elf:    { mod: { str:-1,dex:2, con:-1,int:1, wis:0, cha:1 }, desc: 'Swift, keen-eyed, magical' },
+  Dwarf:  { mod: { str:2, dex:-1,con:2, int:0, wis:1, cha:-1}, desc: 'Tough and strong' },
+  Gnome:  { mod: { str:-1,dex:1, con:0, int:2, wis:0, cha:0 }, desc: 'Clever tinkerer' },
+  Orc:    { mod: { str:3, dex:0, con:2, int:-2,wis:-1,cha:-2}, desc: 'Brutish and fearsome' },
+};
+
+const ROLES = {
+  Warrior:  {
+    base: { str:16,dex:12,con:16,int:7, wis:7, cha:10 }, hp: 14,
+    aligns: ['Lawful','Neutral'],
+    desc: 'Master of arms and armour',
+  },
+  Valkyrie: {
+    base: { str:14,dex:10,con:14,int:8, wis:9, cha:10 }, hp: 13,
+    aligns: ['Neutral','Chaotic'],
+    desc: 'Nordic shield-maiden',
+  },
+  Rogue:    {
+    base: { str:10,dex:16,con:12,int:13,wis:9, cha:11 }, hp: 10,
+    aligns: ['Neutral','Chaotic'],
+    desc: 'Sneaky and cunning',
+  },
+  Ranger:   {
+    base: { str:13,dex:13,con:13,int:13,wis:13,cha:13 }, hp: 11,
+    aligns: ['Neutral'],
+    desc: 'Survivalist explorer',
+  },
+  Wizard:   {
+    base: { str:7, dex:10,con:8, int:18,wis:7, cha:9  }, hp: 8,
+    aligns: ['Neutral','Chaotic'],
+    desc: 'Master of arcane spells',
+  },
+  Healer:   {
+    base: { str:10,dex:10,con:12,int:13,wis:16,cha:12 }, hp: 9,
+    aligns: ['Neutral','Lawful'],
+    desc: 'Restores wounds, cheats death',
+  },
+};
+
+const STAT_NAMES = ['str','dex','con','int','wis','cha'];
+const STAT_LABELS = { str:'STR',dex:'DEX',con:'CON',int:'INT',wis:'WIS',cha:'CHA' };
+const ALIGN_ORDER = ['Lawful','Neutral','Chaotic'];
+
+/* mutable character object — filled in during char creation */
+const character = {
+  name: 'Hack', race: 'Human', role: 'Warrior', align: 'Neutral',
+  stats: {}, hp: { cur: 10, max: 10 }, xp: 0, level: 1,
+};
+
+/* =========================================================
+   CHARACTER SCREEN LOGIC
+   ========================================================= */
+const CS_STEPS = ['NAME','RACE','ROLE','ALIGN','SUMMARY'];
+
+const cs = {
+  step: 0,
+  name: '',
+  race: '',
+  role: '',
+  align: '',
+};
+
+const elCharScreen = document.getElementById('charscreen');
+const elCsBody     = document.getElementById('csBody');
+const elCsProg     = document.getElementById('csProg');
+const elCsBack     = document.getElementById('csBack');
+const elCsNext     = document.getElementById('csNext');
+
+function csProgress() {
+  return CS_STEPS.map((s, i) =>
+    `<span class="${i === cs.step ? 'cur' : ''}">${s}</span>`
+  ).join(' <span style="color:#333">›</span> ');
+}
+
+function csRoll() {
+  /* Combine role base + race modifier + roll(1–4) per stat */
+  const role = ROLES[cs.role], race = RACES[cs.race];
+  const stats = {};
+  for (const s of STAT_NAMES)
+    stats[s] = role.base[s] + race.mod[s] + Math.floor(Math.random() * 4) + 1;
+  return stats;
+}
+
+function csRender() {
+  elCsProg.innerHTML = csProgress();
+  elCsBack.disabled  = cs.step === 0;
+  elCsNext.disabled  = false;
+
+  const step = CS_STEPS[cs.step];
+
+  if (step === 'NAME') {
+    elCsNext.textContent = 'NEXT ▶';
+    elCsNext.className   = 'primary';
+    elCsBody.innerHTML = `
+      <div class="cs-label">What is your name, adventurer?</div>
+      <input id="nameInput" type="text" maxlength="24"
+             placeholder="Enter name (or leave blank)" value="${cs.name}"
+             autocomplete="off" spellcheck="false">
+      <div style="color:#444;font-size:11px;margin-top:6px">Press Enter or click NEXT to continue</div>`;
+    const inp = document.getElementById('nameInput');
+    inp.focus();
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') csAdvance(); });
+
+  } else if (step === 'RACE') {
+    elCsNext.textContent = 'NEXT ▶';
+    elCsNext.className   = 'primary';
+    elCsBody.innerHTML = `
+      <div class="cs-label">Choose your race</div>
+      <div class="opt-list">${
+        Object.entries(RACES).map(([name, r]) => {
+          const mods = STAT_NAMES.map(s => {
+            const v = r.mod[s];
+            return v !== 0 ? `${STAT_LABELS[s]}${v > 0 ? '+' : ''}${v}` : null;
+          }).filter(Boolean).join(' ');
+          const sel = cs.race === name ? 'selected' : '';
+          return `<div class="opt ${sel}" data-val="${name}" onclick="csPick('race',this)">
+            <span class="glyph">${sel ? '▶' : ' '}</span>
+            <span class="oname">${name}</span>
+            <span class="odesc">${r.desc}</span>
+            <span class="ostatline">${mods || 'balanced'}</span>
+          </div>`;
+        }).join('')
+      }</div>`;
+    elCsNext.disabled = !cs.race;
+
+  } else if (step === 'ROLE') {
+    elCsNext.textContent = 'NEXT ▶';
+    elCsNext.className   = 'primary';
+    elCsBody.innerHTML = `
+      <div class="cs-label">Choose your role</div>
+      <div class="opt-list">${
+        Object.entries(ROLES).map(([name, r]) => {
+          const sel = cs.role === name ? 'selected' : '';
+          const hpStr = `HP ${r.hp}`;
+          return `<div class="opt ${sel}" data-val="${name}" onclick="csPick('role',this)">
+            <span class="glyph">${sel ? '▶' : ' '}</span>
+            <span class="oname">${name}</span>
+            <span class="odesc">${r.desc}</span>
+            <span class="ostatline">${hpStr}</span>
+          </div>`;
+        }).join('')
+      }</div>`;
+    elCsNext.disabled = !cs.role;
+
+  } else if (step === 'ALIGN') {
+    elCsNext.textContent = 'NEXT ▶';
+    elCsNext.className   = 'primary';
+    const validAligns = ALIGN_ORDER.filter(a => ROLES[cs.role].aligns.includes(a));
+    /* Auto-reset if current align not valid */
+    if (cs.align && !validAligns.includes(cs.align)) cs.align = '';
+    const descs = {
+      Lawful:  'Order, honour, justice',
+      Neutral: 'Balance and pragmatism',
+      Chaotic: 'Freedom, power, chaos',
+    };
+    elCsBody.innerHTML = `
+      <div class="cs-label">Choose your alignment</div>
+      <div class="opt-list">${
+        validAligns.map(name => {
+          const sel = cs.align === name ? 'selected' : '';
+          return `<div class="opt ${sel}" data-val="${name}" onclick="csPick('align',this)">
+            <span class="glyph">${sel ? '▶' : ' '}</span>
+            <span class="oname">${name}</span>
+            <span class="odesc">${descs[name]}</span>
+          </div>`;
+        }).join('')
+      }</div>`;
+    elCsNext.disabled = !cs.align;
+
+  } else if (step === 'SUMMARY') {
+    elCsNext.textContent = 'BEGIN ADVENTURE ▶';
+    elCsNext.className   = 'primary';
+    elCsBack.disabled    = false;
+    /* Roll stats for preview */
+    const stats = csRoll();
+    cs._rolledStats = stats;  // save for confirmChar
+    const hpMax = ROLES[cs.role].hp + Math.floor((stats.con - 10) / 2);
+    const dispName = cs.name || 'Hack';
+    elCsBody.innerHTML = `
+      <div class="summary-line">Name: <span>${dispName}</span></div>
+      <div class="summary-line">
+        Race: <span>${cs.race}</span> &nbsp;·&nbsp;
+        Role: <span>${cs.role}</span> &nbsp;·&nbsp;
+        Alignment: <span>${cs.align}</span>
+      </div>
+      <div class="summary-line" style="margin:12px 0 8px">Starting stats:</div>
+      <div class="stat-grid">${
+        STAT_NAMES.map(s => `
+          <div class="stat-cell">
+            <div class="sname">${STAT_LABELS[s]}</div>
+            <div class="sval">${stats[s]}</div>
+          </div>`).join('')
+      }</div>
+      <div class="summary-line">Starting HP: <span>${hpMax}</span></div>`;
+  }
+}
+
+function csPick(field, el) {
+  cs[field] = el.dataset.val;
+  /* re-render to update selection highlight */
+  csRender();
+}
+
+/* expose to inline onclick */
+window.csPick = csPick;
+
+function csAdvance() {
+  const step = CS_STEPS[cs.step];
+  if (step === 'NAME') {
+    const inp = document.getElementById('nameInput');
+    cs.name = inp ? inp.value.trim() : cs.name;
+  }
+  if (cs.step < CS_STEPS.length - 1) {
+    cs.step++;
+    csRender();
+  } else {
+    confirmChar();
+  }
+}
+
+function confirmChar() {
+  const stats  = cs._rolledStats || csRoll();
+  const hpMax  = ROLES[cs.role].hp + Math.floor((stats.con - 10) / 2);
+  character.name  = cs.name || 'Hack';
+  character.race  = cs.race;
+  character.role  = cs.role;
+  character.align = cs.align;
+  character.stats = stats;
+  character.hp    = { cur: hpMax, max: hpMax };
+
+  elCharScreen.style.display = 'none';
+  startGame();
+}
+
+elCsBack.addEventListener('click', () => {
+  if (cs.step > 0) { cs.step--; csRender(); }
+});
+elCsNext.addEventListener('click', csAdvance);
+
+/* =========================================================
+   DUNGEON GENERATION
+   ========================================================= */
+function generateDungeon() {
+  // 1 = solid wall, 0 = open floor
+  const map = Array.from({ length: MAP_H }, () => new Uint8Array(MAP_W).fill(1));
+  const rooms = [];
+
+  /* Place rooms */
+  for (let attempt = 0; attempt < 120; attempt++) {
+    const rw = 6 + Math.floor(Math.random() * 9);
+    const rh = 6 + Math.floor(Math.random() * 9);
+    const rx = 2 + Math.floor(Math.random() * (MAP_W - rw - 4));
+    const ry = 2 + Math.floor(Math.random() * (MAP_H - rh - 4));
+
+    let ok = true;
+    for (const r of rooms) {
+      if (rx < r.x + r.w + 2 && rx + rw > r.x - 2 &&
+          ry < r.y + r.h + 2 && ry + rh > r.y - 2) {
+        ok = false; break;
+      }
+    }
+    if (!ok) continue;
+
+    rooms.push({ x: rx, y: ry, w: rw, h: rh });
+    for (let cy = ry; cy < ry + rh; cy++)
+      for (let cx = rx; cx < rx + rw; cx++)
+        map[cy][cx] = 0;
+  }
+
+  /* Connect rooms with 3-wide L-shaped corridors */
+  rooms.sort((a, b) => (a.x + a.y) - (b.x + b.y));
+
+  function carve(cx, cy) {
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++) {
+        const nx = cx + dx, ny = cy + dy;
+        if (nx >= 1 && nx < MAP_W - 1 && ny >= 1 && ny < MAP_H - 1)
+          map[ny][nx] = 0;
+      }
+  }
+
+  for (let i = 1; i < rooms.length; i++) {
+    const a = rooms[i - 1], b = rooms[i];
+    const ax = Math.floor(a.x + a.w / 2);
+    const ay = Math.floor(a.y + a.h / 2);
+    const bx = Math.floor(b.x + b.w / 2);
+    const by = Math.floor(b.y + b.h / 2);
+
+    const hx0 = Math.min(ax, bx), hx1 = Math.max(ax, bx);
+    for (let cx = hx0; cx <= hx1; cx++) carve(cx, ay);
+
+    const vy0 = Math.min(ay, by), vy1 = Math.max(ay, by);
+    for (let cy = vy0; cy <= vy1; cy++) carve(bx, cy);
+  }
+
+  /* Staircase: center of last room */
+  const last  = rooms[rooms.length - 1];
+  const stairX = Math.floor(last.x + last.w / 2);
+  const stairZ = Math.floor(last.y + last.h / 2);
+
+  return { map, rooms, stairX, stairZ };
+}
+
+/* =========================================================
+   THREE.JS SETUP
+   ========================================================= */
+const canvas   = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+
+const scene  = new THREE.Scene();
+scene.background = new THREE.Color(0x020202);
+scene.fog = new THREE.Fog(0x020202, 5, 22);
+
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.05, 80);
+camera.rotation.order = 'YXZ';
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+/* =========================================================
+   PROCEDURAL TEXTURES
+   ========================================================= */
+function makeTexture(size, drawFn) {
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = size;
+  drawFn(cv.getContext('2d'), size);
+  const t = new THREE.CanvasTexture(cv);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
+
+function addNoise(ctx, size, amount) {
+  const id = ctx.getImageData(0, 0, size, size);
+  const d  = id.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const n = (Math.random() - 0.5) * amount;
+    d[i]   = Math.max(0, Math.min(255, d[i]   + n));
+    d[i+1] = Math.max(0, Math.min(255, d[i+1] + n));
+    d[i+2] = Math.max(0, Math.min(255, d[i+2] + n));
+  }
+  ctx.putImageData(id, 0, 0);
+}
+
+/* Stone brick wall */
+const texWall = makeTexture(128, (ctx, s) => {
+  ctx.fillStyle = '#5c5c5c';
+  ctx.fillRect(0, 0, s, s);
+  addNoise(ctx, s, 28);
+
+  const BH = 32, BW = 64;
+  // Mortar shadow fill per brick
+  ctx.fillStyle = 'rgba(0,0,0,0.12)';
+  for (let row = 0; row < s / BH; row++) {
+    const off = (row % 2) * (BW / 2);
+    for (let col = -1; col < s / BW + 1; col++)
+      ctx.fillRect(off + col * BW + 1, row * BH + 1, BW - 2, BH - 2);
+  }
+  // Mortar lines
+  ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+  ctx.lineWidth = 2;
+  for (let row = 0; row <= s / BH; row++) {
+    ctx.beginPath(); ctx.moveTo(0, row * BH); ctx.lineTo(s, row * BH); ctx.stroke();
+    const off = (row % 2) * (BW / 2);
+    for (let col = -1; col <= s / BW + 1; col++) {
+      const vx = off + col * BW;
+      ctx.beginPath(); ctx.moveTo(vx, row * BH); ctx.lineTo(vx, (row + 1) * BH); ctx.stroke();
+    }
+  }
+});
+
+/* Cobblestone floor */
+const texFloor = makeTexture(128, (ctx, s) => {
+  ctx.fillStyle = '#3a342c';
+  ctx.fillRect(0, 0, s, s);
+  addNoise(ctx, s, 22);
+  ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+  ctx.lineWidth = 1.5;
+  for (let i = 0; i <= s; i += 16) {
+    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, s); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(s, i); ctx.stroke();
+  }
+  for (let i = 0; i < 50; i++) {
+    const x = Math.random() * s, y = Math.random() * s;
+    const r = 2 + Math.random() * 3;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(90,80,65,0.28)'; ctx.fill();
+  }
+});
+
+/* Dark ceiling */
+const texCeil = makeTexture(64, (ctx, s) => {
+  ctx.fillStyle = '#1e1e1e';
+  ctx.fillRect(0, 0, s, s);
+  addNoise(ctx, s, 14);
+});
+
+/* =========================================================
+   BUILD WORLD
+   ========================================================= */
+const { map, rooms, stairX, stairZ } = generateDungeon();
+
+let nWalls = 0, nFloors = 0;
+for (let z = 0; z < MAP_H; z++)
+  for (let x = 0; x < MAP_W; x++)
+    map[z][x] === 1 ? nWalls++ : nFloors++;
+
+const blockGeo = new THREE.BoxGeometry(1, 1, 1);
+
+/* Wall layers — darker toward the top for fake ambient occlusion */
+const wallShades   = [0.95, 0.78, 0.55];
+const wallLayers   = [];
+for (let ly = 0; ly < WALL_H; ly++) {
+  const mat = new THREE.MeshLambertMaterial({
+    map: texWall,
+    color: new THREE.Color().setScalar(wallShades[ly]),
+  });
+  const mesh = new THREE.InstancedMesh(blockGeo, mat, nWalls);
+  mesh.receiveShadow = true;
+  scene.add(mesh);
+  wallLayers.push(mesh);
+}
+
+/* Floor */
+const meshFloor = new THREE.InstancedMesh(blockGeo,
+  new THREE.MeshLambertMaterial({ map: texFloor }), nFloors);
+meshFloor.receiveShadow = true;
+scene.add(meshFloor);
+
+/* Ceiling */
+const meshCeil = new THREE.InstancedMesh(blockGeo,
+  new THREE.MeshLambertMaterial({ map: texCeil, color: 0x999999 }), nFloors);
+scene.add(meshCeil);
+
+/* Populate instance matrices */
+const dummy = new THREE.Object3D();
+let wi = 0, fi = 0;
+
+for (let z = 0; z < MAP_H; z++) {
+  for (let x = 0; x < MAP_W; x++) {
+    const cx = x + 0.5, cz = z + 0.5;
+    if (map[z][x] === 1) {
+      for (let ly = 0; ly < WALL_H; ly++) {
+        dummy.position.set(cx, ly + 0.5, cz);
+        dummy.updateMatrix();
+        wallLayers[ly].setMatrixAt(wi, dummy.matrix);
+      }
+      wi++;
+    } else {
+      dummy.position.set(cx, -0.5, cz);
+      dummy.updateMatrix();
+      meshFloor.setMatrixAt(fi, dummy.matrix);
+
+      dummy.position.set(cx, WALL_H + 0.5, cz);
+      dummy.updateMatrix();
+      meshCeil.setMatrixAt(fi, dummy.matrix);
+      fi++;
+    }
+  }
+}
+
+for (const m of wallLayers) m.instanceMatrix.needsUpdate = true;
+meshFloor.instanceMatrix.needsUpdate = true;
+meshCeil.instanceMatrix.needsUpdate  = true;
+
+/* Staircase — glowing yellow disc + spinning arrow */
+const stairDisc = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.42, 0.42, 0.12, 10),
+  new THREE.MeshLambertMaterial({ color: 0xffcc33, emissive: 0x886600 })
+);
+stairDisc.position.set(stairX + 0.5, 0.06, stairZ + 0.5);
+scene.add(stairDisc);
+
+const stairArrow = new THREE.Mesh(
+  new THREE.ConeGeometry(0.14, 0.36, 6),
+  new THREE.MeshLambertMaterial({ color: 0xffcc33, emissive: 0x886600 })
+);
+stairArrow.position.set(stairX + 0.5, 0.85, stairZ + 0.5);
+stairArrow.rotation.z = Math.PI; // point downward
+scene.add(stairArrow);
+
+/* =========================================================
+   LIGHTING
+   ========================================================= */
+scene.add(new THREE.AmbientLight(0x0c0c18, 1));
+
+const torchLights = [];
+
+/* One torch per room */
+for (const room of rooms) {
+  const cx = room.x + room.w / 2 + 0.5;
+  const cz = room.y + room.h / 2 + 0.5;
+
+  const main = new THREE.PointLight(0xff9933, 4.5, 14, 2);
+  main.position.set(cx, 2.1, cz);
+  main.userData.base  = 3.8 + Math.random() * 1.5;
+  main.userData.phase = Math.random() * Math.PI * 2;
+  scene.add(main);
+  torchLights.push(main);
+
+  /* Cool-toned fill to suggest ambient bounced light */
+  const fill = new THREE.PointLight(0x3344aa, 0.5, 10, 2);
+  fill.position.set(cx, 0.4, cz);
+  scene.add(fill);
+}
+
+/* Sparse corridor torches every 10 cells */
+for (let z = 5; z < MAP_H; z += 10) {
+  for (let x = 5; x < MAP_W; x += 10) {
+    if (map[z][x] === 0) {
+      const l = new THREE.PointLight(0xff8822, 2, 9, 2);
+      l.position.set(x + 0.5, 2.1, z + 0.5);
+      l.userData.base  = 1.4 + Math.random() * 0.8;
+      l.userData.phase = Math.random() * Math.PI * 2;
+      scene.add(l);
+      torchLights.push(l);
+    }
+  }
+}
+
+/* Staircase glow */
+const stairLight = new THREE.PointLight(0xffee88, 3, 5, 2);
+stairLight.position.set(stairX + 0.5, 1.5, stairZ + 0.5);
+scene.add(stairLight);
+
+/* Player-carried torch */
+const playerLight = new THREE.PointLight(0xffaa44, 2.8, 7, 2);
+scene.add(playerLight);
+
+/* =========================================================
+   PLAYER STATE
+   ========================================================= */
+const player = {
+  pos:   new THREE.Vector3(),
+  yaw:   0,
+  pitch: 0,
+};
+
+const sr = rooms[0];
+player.pos.set(sr.x + sr.w / 2 + 0.5, 0, sr.y + sr.h / 2 + 0.5);
+camera.position.set(player.pos.x, EYE_H, player.pos.z);
+
+/* =========================================================
+   INPUT
+   ========================================================= */
+const keys = new Set();
+document.addEventListener('keydown', e => keys.add(e.code));
+document.addEventListener('keyup',   e => keys.delete(e.code));
+
+let locked       = false;
+let gameStarted  = false;
+let fallbackMode = false;  // true when pointer lock is unavailable (file://)
+let mouseActive  = false;  // simulated lock state in fallback mode
+
+const elOverlay = document.getElementById('overlay');
+const elPaused  = document.getElementById('paused');
+const elHint    = document.getElementById('hint');
+
+function setHint(text) {
+  elHint.textContent   = text;
+  elHint.style.display = text ? 'block' : 'none';
+}
+
+function enterFallback() {
+  if (fallbackMode) return;
+  fallbackMode = true;
+  mouseActive  = true;
+  setHint('click to release mouse');
+}
+
+/* Real pointer lock events */
+document.addEventListener('pointerlockchange', () => {
+  locked = document.pointerLockElement === canvas;
+  if (!fallbackMode) {
+    elOverlay.style.display = (!locked && !gameStarted) ? 'flex' : 'none';
+    elPaused.style.display  = (!locked &&  gameStarted) ? 'flex' : 'none';
+  }
+});
+document.addEventListener('pointerlockerror', () => {
+  if (gameStarted) enterFallback();
+});
+
+document.addEventListener('mousemove', e => {
+  if (!locked && !mouseActive) return;
+  const s = 0.0018;
+  player.yaw   -= e.movementX * s;
+  player.pitch  = Math.max(-1.45, Math.min(1.45, player.pitch - e.movementY * s));
+});
+
+document.getElementById('startBtn').addEventListener('click', () => {
+  elOverlay.style.display     = 'none';
+  elCharScreen.style.display  = 'flex';
+  /* default selections so user can skip straight through */
+  cs.step  = 0;
+  cs.name  = '';
+  cs.race  = 'Human';
+  cs.role  = 'Warrior';
+  cs.align = 'Neutral';
+  csRender();
+});
+
+function startGame() {
+  gameStarted = true;
+  const req = canvas.requestPointerLock();
+  if (req && typeof req.catch === 'function') {
+    req.catch(() => enterFallback());
+  } else {
+    setTimeout(() => { if (!locked) enterFallback(); }, 300);
+  }
+}
+
+canvas.addEventListener('click', () => {
+  if (!gameStarted) return;
+  if (fallbackMode) {
+    mouseActive = !mouseActive;
+    setHint(mouseActive ? 'click to release mouse' : 'click to capture mouse');
+    elPaused.style.display = mouseActive ? 'none' : 'flex';
+  } else if (!locked) {
+    canvas.requestPointerLock();
+  }
+});
+
+/* Esc in fallback mode → release look, show paused */
+document.addEventListener('keydown', e => {
+  if (e.code === 'Escape' && fallbackMode && mouseActive) {
+    mouseActive = false;
+    setHint('click to capture mouse');
+    elPaused.style.display = 'flex';
+  }
+});
+
+/* =========================================================
+   COLLISION
+   ========================================================= */
+function isBlocked(wx, wz) {
+  const ix = Math.floor(wx), iz = Math.floor(wz);
+  if (ix < 0 || ix >= MAP_W || iz < 0 || iz >= MAP_H) return true;
+  return map[iz][ix] === 1;
+}
+
+function overlapsWall(px, pz, r) {
+  const x0 = Math.floor(px - r), x1 = Math.floor(px + r);
+  const z0 = Math.floor(pz - r), z1 = Math.floor(pz + r);
+  for (let z = z0; z <= z1; z++)
+    for (let x = x0; x <= x1; x++)
+      if (isBlocked(x, z)) return true;
+  return false;
+}
+
+/* =========================================================
+   GAME LOOP
+   ========================================================= */
+const clock     = new THREE.Clock();
+const statusEl  = document.getElementById('statusText');
+const _fwd      = new THREE.Vector3();
+const _right    = new THREE.Vector3();
+
+function update(dt) {
+  if (!locked && !mouseActive) return;
+
+  /* Movement */
+  camera.getWorldDirection(_fwd);
+  _fwd.y = 0;
+  _fwd.normalize();
+  _right.set(-_fwd.z, 0, _fwd.x); // perpendicular in XZ
+
+  let mx = 0, mz = 0;
+  if (keys.has('KeyW') || keys.has('ArrowUp'))    { mx += _fwd.x;   mz += _fwd.z; }
+  if (keys.has('KeyS') || keys.has('ArrowDown'))  { mx -= _fwd.x;   mz -= _fwd.z; }
+  if (keys.has('KeyD') || keys.has('ArrowRight')) { mx += _right.x; mz += _right.z; }
+  if (keys.has('KeyA') || keys.has('ArrowLeft'))  { mx -= _right.x; mz -= _right.z; }
+
+  const mlen = Math.sqrt(mx * mx + mz * mz);
+  if (mlen > 0) {
+    const sprint = keys.has('ShiftLeft') || keys.has('ShiftRight');
+    const spd = (sprint ? SPRINT : SPEED) * dt / mlen;
+
+    const prevX = player.pos.x, prevZ = player.pos.z;
+
+    player.pos.x += mx * spd;
+    if (overlapsWall(player.pos.x, player.pos.z, RADIUS)) player.pos.x = prevX;
+
+    player.pos.z += mz * spd;
+    if (overlapsWall(player.pos.x, player.pos.z, RADIUS)) player.pos.z = prevZ;
+  }
+
+  /* Camera */
+  camera.position.set(player.pos.x, EYE_H, player.pos.z);
+  camera.rotation.y = player.yaw;
+  camera.rotation.x = player.pitch;
+
+  /* Player light */
+  playerLight.position.copy(camera.position);
+  playerLight.position.y -= 0.4;
+
+  /* Torch flicker */
+  for (const lt of torchLights) {
+    lt.userData.phase += dt * (2.5 + Math.random() * 4);
+    lt.intensity = lt.userData.base
+      + Math.sin(lt.userData.phase) * 0.45
+      + Math.sin(lt.userData.phase * 2.7) * 0.2;
+  }
+
+  /* Stair marker spin */
+  stairArrow.rotation.y = clock.elapsedTime * 1.8;
+
+  /* Status */
+  const px = Math.floor(player.pos.x), pz = Math.floor(player.pos.z);
+  const nearStair = Math.hypot(player.pos.x - (stairX + 0.5),
+                               player.pos.z - (stairZ + 0.5)) < 1.6;
+  const { role, hp, level, align } = character;
+  const hpPct  = hp.cur / hp.max;
+  const hpCol  = hpPct > 0.5 ? '#8f8' : hpPct > 0.25 ? '#fa0' : '#f44';
+  const hpStr  = `<span style="color:${hpCol}">HP ${hp.cur}/${hp.max}</span>`;
+  const stair  = nearStair ? `&nbsp;&nbsp;<span class="hi">▼ Stairs to Level 2</span>` : '';
+  statusEl.innerHTML =
+    `${role} &nbsp;${hpStr}&nbsp; Lvl:${level} &nbsp;DL:1 &nbsp;(${px},${pz})${stair}`;
+}
+
+function loop() {
+  requestAnimationFrame(loop);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  update(dt);
+  renderer.render(scene, camera);
+}
+
+loop();
+</script>
+</body>
+</html>
