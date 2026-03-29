@@ -926,8 +926,14 @@ function resumeGame() {
     mouseActive = true;
     setHint('click to release mouse');
     elPaused.style.display = 'none';
-  } else if (!locked) {
-    canvas.requestPointerLock();
+  } else {
+    elPaused.style.display = 'none';
+    const req = canvas.requestPointerLock();
+    if (req && typeof req.catch === 'function') {
+      req.catch(() => enterFallback());
+    } else {
+      setTimeout(() => { if (!locked) enterFallback(); }, 300);
+    }
   }
 }
 
