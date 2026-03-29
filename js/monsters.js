@@ -26,218 +26,375 @@ const TIERS = [
 ];
 
 /* =========================================================
-   MONSTER SPRITES — detailed pixel art on canvas
+   MONSTER SPRITES — smooth canvas-drawn, bestiary style
    ========================================================= */
-function drawMonster(name) {
-  const sz = 64;
+function drawMonster(name, type) {
+  const sz = 128;
   const cv = document.createElement('canvas');
   cv.width = cv.height = sz;
   const c = cv.getContext('2d');
-  c.imageSmoothingEnabled = false;
+  c.lineCap = 'round'; c.lineJoin = 'round';
 
-  /* Helper: pixel rect at scale (each "pixel" = 2px for 32-logical on 64-canvas) */
-  const P = 2;
-  function px(x, y, w, h, col) {
-    c.fillStyle = col;
-    c.fillRect(x * P, y * P, w * P, h * P);
+  /* Helpers */
+  function eye(cx, cy, r, glowCol, pupilCol) {
+    /* Glow halo */
+    const g = c.createRadialGradient(cx, cy, 0, cx, cy, r * 2.5);
+    g.addColorStop(0, glowCol);
+    g.addColorStop(1, 'transparent');
+    c.fillStyle = g; c.fillRect(cx - r*3, cy - r*3, r*6, r*6);
+    /* Eyeball */
+    c.fillStyle = glowCol;
+    c.beginPath(); c.ellipse(cx, cy, r, r * 0.85, 0, 0, Math.PI*2); c.fill();
+    /* Slit pupil */
+    c.fillStyle = pupilCol || '#000';
+    c.beginPath(); c.ellipse(cx, cy, r*0.35, r*0.7, 0, 0, Math.PI*2); c.fill();
   }
 
   switch (name) {
     case 'rat': {
-      /* Brown furry rat with beady red eyes and long tail */
-      // body
-      px(10,22, 12,6, '#7a5a1e'); px(11,21, 10,1, '#8B6914');
-      px(9,23, 1,4, '#6a4a10'); px(22,23, 1,4, '#6a4a10');
-      // fur texture
-      px(12,23, 2,1, '#9a7a2e'); px(16,22, 2,1, '#9a7a2e'); px(14,24, 3,1, '#6a4a10');
-      // head
-      px(19,19, 7,6, '#8B6914'); px(20,18, 5,1, '#7a5a1e');
-      // ears
-      px(20,17, 2,2, '#a07030'); px(24,17, 2,2, '#a07030');
-      px(21,17, 1,1, '#6a4a10'); px(25,17, 1,1, '#6a4a10');
-      // eyes — glowing red
-      px(21,20, 2,2, '#f00'); px(24,20, 2,2, '#f00');
-      px(22,21, 1,1, '#ff4'); px(25,21, 1,1, '#ff4');
-      // nose
-      px(26,22, 1,1, '#ff8888');
-      // whiskers
-      px(27,21, 2,1, '#aaa'); px(27,23, 2,1, '#aaa');
-      // tail (curling behind)
-      px(6,24, 4,1, '#9a6a2a'); px(4,23, 2,1, '#9a6a2a');
-      px(3,22, 2,1, '#8a5a1a'); px(3,21, 1,2, '#8a5a1a');
-      // feet
-      px(12,28, 2,1, '#6a4a10'); px(18,28, 2,1, '#6a4a10');
+      const by = 70;
+      /* Tail — thin curve */
+      c.strokeStyle = '#7a5520'; c.lineWidth = 2.5;
+      c.beginPath(); c.moveTo(22, by+10); c.quadraticCurveTo(10, by-5, 18, by-18); c.stroke();
+      /* Body — low oval */
+      const bg = c.createRadialGradient(64, by+6, 4, 64, by+6, 30);
+      bg.addColorStop(0, '#9a7a30'); bg.addColorStop(1, '#5a3a10');
+      c.fillStyle = bg;
+      c.beginPath(); c.ellipse(64, by+6, 28, 14, -0.1, 0, Math.PI*2); c.fill();
+      /* Fur strokes */
+      c.strokeStyle = '#6a4a18'; c.lineWidth = 1;
+      for (let i = 0; i < 8; i++) {
+        const fx = 44 + Math.random()*36, fy = by - 2 + Math.random()*16;
+        c.beginPath(); c.moveTo(fx, fy); c.lineTo(fx + 3 - Math.random()*6, fy + 4); c.stroke();
+      }
+      /* Head — pointed snout */
+      const hg = c.createRadialGradient(88, by-2, 2, 88, by, 16);
+      hg.addColorStop(0, '#aa8a38'); hg.addColorStop(1, '#6a4a18');
+      c.fillStyle = hg;
+      c.beginPath(); c.moveTo(80, by-10); c.quadraticCurveTo(100, by-8, 104, by+2);
+      c.quadraticCurveTo(100, by+10, 80, by+8); c.closePath(); c.fill();
+      /* Ears */
+      c.fillStyle = '#a07838';
+      c.beginPath(); c.ellipse(82, by-14, 5, 7, -0.3, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.ellipse(92, by-14, 5, 7, 0.3, 0, Math.PI*2); c.fill();
+      c.fillStyle = '#704020';
+      c.beginPath(); c.ellipse(82, by-13, 3, 4, -0.3, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.ellipse(92, by-13, 3, 4, 0.3, 0, Math.PI*2); c.fill();
+      /* Eyes */
+      eye(85, by-2, 3.5, '#ff2200', '#000');
+      eye(95, by-2, 3.5, '#ff2200', '#000');
+      /* Nose */
+      c.fillStyle = '#ffaaaa'; c.beginPath(); c.arc(103, by+2, 2, 0, Math.PI*2); c.fill();
+      /* Whiskers */
+      c.strokeStyle = 'rgba(200,180,150,0.6)'; c.lineWidth = 0.8;
+      c.beginPath(); c.moveTo(103, by); c.lineTo(118, by-6); c.stroke();
+      c.beginPath(); c.moveTo(103, by+4); c.lineTo(118, by+8); c.stroke();
+      /* Feet */
+      c.fillStyle = '#5a3a10';
+      c.beginPath(); c.ellipse(48, by+18, 5, 3, 0, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.ellipse(74, by+18, 5, 3, 0, 0, Math.PI*2); c.fill();
       break;
     }
     case 'bat': {
-      /* Dark bat with spread wings and red eyes */
-      // body
-      px(14,16, 4,6, '#444'); px(13,17, 6,4, '#555');
-      // head
-      px(14,13, 4,3, '#555'); px(15,12, 2,1, '#444');
-      // ears (pointy)
-      px(14,11, 1,2, '#555'); px(19,11, 1,2, '#555');
-      px(13,10, 1,2, '#444'); px(20,10, 1,2, '#444');
-      // eyes — bright red glow
-      px(14,14, 2,1, '#f00'); px(17,14, 2,1, '#f00');
-      px(15,14, 1,1, '#ff0'); px(18,14, 1,1, '#ff0');
-      // fangs
-      px(15,16, 1,1, '#fff'); px(17,16, 1,1, '#fff');
-      // wings spread wide
-      px(7,15, 7,2, '#3a3a3a'); px(18,15, 7,2, '#3a3a3a');
-      px(4,14, 4,3, '#333'); px(24,14, 4,3, '#333');
-      px(2,13, 3,3, '#2a2a2a'); px(27,13, 3,3, '#2a2a2a');
-      // wing fingers
-      px(3,12, 1,2, '#333'); px(6,13, 1,2, '#333');
-      px(28,12, 1,2, '#333'); px(25,13, 1,2, '#333');
-      // wing membrane texture
-      px(5,15, 2,1, '#444'); px(9,16, 1,1, '#444');
-      px(25,15, 2,1, '#444'); px(22,16, 1,1, '#444');
+      const cy = 52;
+      /* Wings — smooth curves */
+      c.fillStyle = '#2a2a30';
+      c.beginPath();
+      c.moveTo(64, cy); // body center
+      c.quadraticCurveTo(40, cy-20, 8, cy-18);  // left wing tip
+      c.quadraticCurveTo(12, cy-4, 28, cy+6);    // left wing bottom
+      c.lineTo(64, cy+4);
+      c.moveTo(64, cy);
+      c.quadraticCurveTo(88, cy-20, 120, cy-18);
+      c.quadraticCurveTo(116, cy-4, 100, cy+6);
+      c.lineTo(64, cy+4);
+      c.fill();
+      /* Wing membrane lines */
+      c.strokeStyle = '#3a3a44'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(60, cy); c.quadraticCurveTo(36, cy-14, 14, cy-14); c.stroke();
+      c.beginPath(); c.moveTo(56, cy+2); c.quadraticCurveTo(38, cy-6, 20, cy-6); c.stroke();
+      c.beginPath(); c.moveTo(68, cy); c.quadraticCurveTo(92, cy-14, 114, cy-14); c.stroke();
+      c.beginPath(); c.moveTo(72, cy+2); c.quadraticCurveTo(90, cy-6, 108, cy-6); c.stroke();
+      /* Body */
+      const bg = c.createRadialGradient(64, cy+4, 2, 64, cy+4, 14);
+      bg.addColorStop(0, '#555'); bg.addColorStop(1, '#2a2a30');
+      c.fillStyle = bg;
+      c.beginPath(); c.ellipse(64, cy+4, 12, 14, 0, 0, Math.PI*2); c.fill();
+      /* Ears */
+      c.fillStyle = '#444';
+      c.beginPath(); c.moveTo(54, cy-10); c.lineTo(50, cy-26); c.lineTo(58, cy-14); c.fill();
+      c.beginPath(); c.moveTo(74, cy-10); c.lineTo(78, cy-26); c.lineTo(70, cy-14); c.fill();
+      /* Eyes */
+      eye(58, cy-2, 4, '#ff0000', '#000');
+      eye(70, cy-2, 4, '#ff0000', '#000');
+      /* Fangs */
+      c.fillStyle = '#eee'; c.lineWidth = 0;
+      c.beginPath(); c.moveTo(60, cy+10); c.lineTo(62, cy+16); c.lineTo(64, cy+10); c.fill();
+      c.beginPath(); c.moveTo(64, cy+10); c.lineTo(66, cy+16); c.lineTo(68, cy+10); c.fill();
       break;
     }
     case 'kobold': {
-      /* Green scaly humanoid with yellow eyes and a spear */
-      // body
-      px(12,16, 8,10, '#3a6a3a'); px(13,15, 6,1, '#4a7a4a');
-      // scales texture
-      px(14,18, 2,1, '#2a5a2a'); px(17,20, 2,1, '#2a5a2a');
-      px(13,22, 2,1, '#2a5a2a'); px(16,17, 1,1, '#4a8a4a');
-      // head
-      px(13,10, 6,6, '#4a7a4a'); px(14,9, 4,1, '#3a6a3a');
-      // snout
-      px(19,12, 2,3, '#4a7a4a'); px(21,13, 1,1, '#3a5a3a');
-      // eyes — yellow menacing
-      px(15,11, 2,2, '#ff0'); px(18,11, 2,2, '#ff0');
-      px(15,12, 1,1, '#000'); px(18,12, 1,1, '#000');
-      // teeth
-      px(19,14, 1,1, '#fff'); px(20,14, 1,1, '#fff');
-      // arms
-      px(10,17, 2,5, '#3a6a3a'); px(20,17, 2,5, '#3a6a3a');
-      // claws
-      px(9,22, 1,1, '#cc8'); px(10,22, 1,1, '#cc8');
-      px(21,22, 1,1, '#cc8'); px(22,22, 1,1, '#cc8');
-      // legs
-      px(13,26, 2,3, '#3a6a3a'); px(17,26, 2,3, '#3a6a3a');
-      // feet
-      px(12,29, 3,1, '#2a5a2a'); px(17,29, 3,1, '#2a5a2a');
-      // spear (held in right hand)
-      px(22,8, 1,16, '#864'); px(22,7, 1,1, '#ccc'); px(22,6, 1,2, '#aaa');
+      const by = 48;
+      /* Body */
+      const bg = c.createLinearGradient(64, by-8, 64, by+40);
+      bg.addColorStop(0, '#4a8a4a'); bg.addColorStop(1, '#2a5a2a');
+      c.fillStyle = bg;
+      c.beginPath(); c.moveTo(48, by); c.quadraticCurveTo(44, by+20, 48, by+38);
+      c.lineTo(80, by+38); c.quadraticCurveTo(84, by+20, 80, by); c.closePath(); c.fill();
+      /* Scale pattern */
+      c.strokeStyle = 'rgba(0,40,0,0.3)'; c.lineWidth = 0.8;
+      for (let row = 0; row < 5; row++) {
+        const yy = by + 4 + row * 7;
+        for (let col = 0; col < 4; col++) {
+          const xx = 50 + col * 8 + (row % 2) * 4;
+          c.beginPath(); c.arc(xx, yy, 3.5, 0, Math.PI); c.stroke();
+        }
+      }
+      /* Head */
+      c.fillStyle = '#4a8a4a';
+      c.beginPath(); c.ellipse(64, by-14, 14, 12, 0, 0, Math.PI*2); c.fill();
+      /* Snout */
+      c.fillStyle = '#3a7a3a';
+      c.beginPath(); c.ellipse(76, by-10, 8, 6, 0.2, 0, Math.PI*2); c.fill();
+      /* Eyes — yellow slits */
+      eye(58, by-16, 4, '#eecc00', '#111');
+      eye(68, by-16, 4, '#eecc00', '#111');
+      /* Nostrils */
+      c.fillStyle = '#2a5a2a';
+      c.beginPath(); c.arc(81, by-10, 1.5, 0, Math.PI*2); c.fill();
+      /* Teeth */
+      c.fillStyle = '#eee';
+      c.beginPath(); c.moveTo(74, by-5); c.lineTo(75.5, by-1); c.lineTo(77, by-5); c.fill();
+      c.beginPath(); c.moveTo(78, by-5); c.lineTo(79.5, by-1); c.lineTo(81, by-5); c.fill();
+      /* Arms */
+      c.strokeStyle = '#3a7a3a'; c.lineWidth = 5;
+      c.beginPath(); c.moveTo(48, by+6); c.quadraticCurveTo(34, by+16, 36, by+28); c.stroke();
+      c.beginPath(); c.moveTo(80, by+6); c.quadraticCurveTo(94, by+16, 92, by+28); c.stroke();
+      /* Claws */
+      c.strokeStyle = '#cc8'; c.lineWidth = 1.5;
+      c.beginPath(); c.moveTo(34, by+28); c.lineTo(30, by+32); c.stroke();
+      c.beginPath(); c.moveTo(36, by+28); c.lineTo(34, by+33); c.stroke();
+      c.beginPath(); c.moveTo(92, by+28); c.lineTo(96, by+32); c.stroke();
+      c.beginPath(); c.moveTo(94, by+28); c.lineTo(96, by+33); c.stroke();
+      /* Legs */
+      c.strokeStyle = '#2a5a2a'; c.lineWidth = 5;
+      c.beginPath(); c.moveTo(54, by+38); c.lineTo(50, by+50); c.stroke();
+      c.beginPath(); c.moveTo(74, by+38); c.lineTo(78, by+50); c.stroke();
+      /* Spear */
+      c.strokeStyle = '#8a6a30'; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(96, by-20); c.lineTo(96, by+34); c.stroke();
+      c.fillStyle = '#bbb';
+      c.beginPath(); c.moveTo(93, by-20); c.lineTo(96, by-30); c.lineTo(99, by-20); c.fill();
       break;
     }
     case 'goblin': {
-      /* Larger green brute with tusks, armor scraps, glowing eyes */
-      // body (armored)
-      px(11,14, 10,12, '#2a6644'); px(12,13, 8,1, '#2a5a3a');
-      // armor scraps
-      px(12,16, 8,3, '#665533'); px(13,15, 6,1, '#554422');
-      px(12,19, 3,2, '#665533'); px(17,19, 3,2, '#665533');
-      // belt
-      px(12,21, 8,1, '#886644'); px(15,21, 2,1, '#aa8844');
-      // head
-      px(12,7, 8,7, '#3a7a5a'); px(13,6, 6,1, '#2a6a4a');
-      // brow ridge
-      px(12,8, 8,1, '#2a5a3a');
-      // eyes — orange menacing glow
-      px(14,9, 2,2, '#f80'); px(18,9, 2,2, '#f80');
-      px(14,10, 1,1, '#ff0'); px(18,10, 1,1, '#ff0');
-      // nose
-      px(16,11, 1,1, '#2a5a3a');
-      // tusks
-      px(13,13, 1,2, '#eed'); px(18,13, 1,2, '#eed');
-      // ears (pointed)
-      px(10,8, 2,2, '#3a7a5a'); px(20,8, 2,2, '#3a7a5a');
-      px(9,9, 1,1, '#2a6a4a'); px(22,9, 1,1, '#2a6a4a');
-      // arms
-      px(8,15, 3,7, '#2a6644'); px(21,15, 3,7, '#2a6644');
-      // fists
-      px(8,22, 3,2, '#3a7a5a'); px(21,22, 3,2, '#3a7a5a');
-      // legs
-      px(13,26, 3,3, '#2a5a3a'); px(17,26, 3,3, '#2a5a3a');
-      // feet
-      px(12,29, 4,1, '#223'); px(17,29, 4,1, '#223');
-      // weapon — crude club
-      px(7,10, 1,14, '#654'); px(6,8, 3,3, '#876'); px(6,9, 1,1, '#555');
+      const by = 40;
+      /* Body — stocky */
+      const bg = c.createLinearGradient(64, by, 64, by+50);
+      bg.addColorStop(0, '#2a7a4a'); bg.addColorStop(1, '#1a4a2a');
+      c.fillStyle = bg;
+      c.beginPath();
+      c.moveTo(42, by+4); c.quadraticCurveTo(36, by+26, 42, by+46);
+      c.lineTo(86, by+46); c.quadraticCurveTo(92, by+26, 86, by+4); c.closePath(); c.fill();
+      /* Armor scraps */
+      c.fillStyle = 'rgba(80,60,30,0.7)';
+      c.fillRect(44, by+8, 40, 12);
+      c.strokeStyle = '#6a5020'; c.lineWidth = 1;
+      c.strokeRect(44, by+8, 40, 12);
+      /* Belt */
+      c.fillStyle = '#8a6a30'; c.fillRect(42, by+32, 44, 4);
+      c.fillStyle = '#ccaa44'; c.beginPath(); c.arc(64, by+34, 3, 0, Math.PI*2); c.fill();
+      /* Head — wide, brutish */
+      const hg = c.createRadialGradient(64, by-12, 3, 64, by-8, 22);
+      hg.addColorStop(0, '#3a8a5a'); hg.addColorStop(1, '#1a5a3a');
+      c.fillStyle = hg;
+      c.beginPath(); c.ellipse(64, by-8, 20, 16, 0, 0, Math.PI*2); c.fill();
+      /* Brow ridge */
+      c.strokeStyle = '#1a4a2a'; c.lineWidth = 3;
+      c.beginPath(); c.moveTo(46, by-14); c.quadraticCurveTo(64, by-20, 82, by-14); c.stroke();
+      /* Eyes — orange menacing */
+      eye(55, by-12, 5, '#ff8800', '#111');
+      eye(73, by-12, 5, '#ff8800', '#111');
+      /* Tusks */
+      c.fillStyle = '#eed';
+      c.beginPath(); c.moveTo(50, by+2); c.lineTo(48, by+10); c.lineTo(53, by+2); c.fill();
+      c.beginPath(); c.moveTo(75, by+2); c.lineTo(80, by+10); c.lineTo(78, by+2); c.fill();
+      /* Ears */
+      c.fillStyle = '#2a7a4a';
+      c.beginPath(); c.moveTo(44, by-10); c.lineTo(32, by-14); c.lineTo(44, by-4); c.fill();
+      c.beginPath(); c.moveTo(84, by-10); c.lineTo(96, by-14); c.lineTo(84, by-4); c.fill();
+      /* Arms */
+      c.strokeStyle = '#1a5a3a'; c.lineWidth = 7;
+      c.beginPath(); c.moveTo(42, by+10); c.quadraticCurveTo(26, by+22, 28, by+36); c.stroke();
+      c.beginPath(); c.moveTo(86, by+10); c.quadraticCurveTo(102, by+22, 100, by+36); c.stroke();
+      /* Fists */
+      c.fillStyle = '#2a7a4a';
+      c.beginPath(); c.arc(28, by+38, 5, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.arc(100, by+38, 5, 0, Math.PI*2); c.fill();
+      /* Legs */
+      c.strokeStyle = '#1a4a2a'; c.lineWidth = 7;
+      c.beginPath(); c.moveTo(52, by+46); c.lineTo(48, by+58); c.stroke();
+      c.beginPath(); c.moveTo(76, by+46); c.lineTo(80, by+58); c.stroke();
+      /* Club */
+      c.strokeStyle = '#654'; c.lineWidth = 3;
+      c.beginPath(); c.moveTo(24, by+12); c.lineTo(24, by+40); c.stroke();
+      c.fillStyle = '#876';
+      c.beginPath(); c.ellipse(24, by+10, 6, 8, 0, 0, Math.PI*2); c.fill();
+      c.fillStyle = '#555';
+      c.beginPath(); c.arc(22, by+8, 2, 0, Math.PI*2); c.fill(); // nail
       break;
     }
     case 'skeleton': {
-      /* Bone-white skeleton with hollow eye sockets and sword */
-      // ribcage
-      px(13,14, 6,7, '#111'); // dark cavity
-      px(12,14, 1,7, '#ddd'); px(19,14, 1,7, '#ddd'); // sides
-      px(13,14, 6,1, '#ddd'); px(13,17, 6,1, '#ddd'); px(13,20, 6,1, '#ddd'); // ribs
-      // spine
-      px(15,14, 2,10, '#ccc');
-      // skull
-      px(12,6, 8,8, '#eee'); px(13,5, 6,1, '#ddd');
-      // eye sockets — deep black with red pinpoints
-      px(13,8, 3,3, '#111'); px(17,8, 3,3, '#111');
-      px(14,9, 1,1, '#f44'); px(18,9, 1,1, '#f44');
-      // nose hole
-      px(15,11, 2,1, '#333');
-      // teeth / jaw
-      px(13,12, 6,1, '#ddd');
-      px(13,13, 1,1, '#ccc'); px(15,13, 1,1, '#ccc');
-      px(17,13, 1,1, '#ccc'); px(19,13, 1,1, '#ccc');
-      // arms (bone)
-      px(10,15, 2,1, '#ddd'); px(9,16, 1,6, '#ccc'); px(10,16, 1,6, '#ccc');
-      px(20,15, 2,1, '#ddd'); px(21,16, 1,6, '#ccc'); px(22,16, 1,6, '#ccc');
-      // hands
-      px(8,22, 2,1, '#ddd'); px(22,22, 2,1, '#ddd');
-      // pelvis
-      px(13,24, 6,1, '#ccc');
-      // legs
-      px(13,25, 2,4, '#ccc'); px(17,25, 2,4, '#ccc');
-      // feet
-      px(12,29, 3,1, '#bbb'); px(17,29, 3,1, '#bbb');
-      // rusty sword
-      px(7,9, 1,14, '#aaa'); px(7,8, 1,1, '#ccc'); px(6,22, 3,1, '#886644');
+      const by = 32;
+      /* Skull */
+      c.fillStyle = '#eee8dd';
+      c.beginPath(); c.ellipse(64, by, 16, 14, 0, 0, Math.PI*2); c.fill();
+      /* Cheekbone shading */
+      c.fillStyle = 'rgba(0,0,0,0.08)';
+      c.beginPath(); c.ellipse(52, by+4, 8, 6, 0, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.ellipse(76, by+4, 8, 6, 0, 0, Math.PI*2); c.fill();
+      /* Eye sockets — deep dark */
+      c.fillStyle = '#0a0808';
+      c.beginPath(); c.ellipse(56, by-2, 6, 5, -0.15, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.ellipse(72, by-2, 6, 5, 0.15, 0, Math.PI*2); c.fill();
+      /* Soul fire in eyes */
+      eye(56, by-2, 2.5, '#ff3322', '#ff8844');
+      eye(72, by-2, 2.5, '#ff3322', '#ff8844');
+      /* Nose hole */
+      c.fillStyle = '#2a2420';
+      c.beginPath(); c.moveTo(62, by+4); c.lineTo(64, by+8); c.lineTo(66, by+4); c.fill();
+      /* Jaw + teeth */
+      c.fillStyle = '#ddd8cc';
+      c.beginPath(); c.moveTo(50, by+10); c.quadraticCurveTo(64, by+16, 78, by+10);
+      c.lineTo(78, by+8); c.lineTo(50, by+8); c.closePath(); c.fill();
+      c.fillStyle = '#111';
+      for (let i = 0; i < 6; i++) {
+        c.fillRect(52 + i*5, by+9, 1.5, 4);
+      }
+      /* Spine + ribcage */
+      c.strokeStyle = '#ccc8bb'; c.lineWidth = 3;
+      c.beginPath(); c.moveTo(64, by+16); c.lineTo(64, by+56); c.stroke();
+      /* Ribs */
+      c.lineWidth = 2;
+      for (let i = 0; i < 4; i++) {
+        const ry = by + 22 + i * 6;
+        c.beginPath(); c.moveTo(64, ry); c.quadraticCurveTo(50, ry-1, 44, ry+3); c.stroke();
+        c.beginPath(); c.moveTo(64, ry); c.quadraticCurveTo(78, ry-1, 84, ry+3); c.stroke();
+      }
+      /* Arms */
+      c.strokeStyle = '#ccc8bb'; c.lineWidth = 3;
+      c.beginPath(); c.moveTo(44, by+22); c.quadraticCurveTo(30, by+30, 28, by+46); c.stroke();
+      c.beginPath(); c.moveTo(84, by+22); c.quadraticCurveTo(98, by+30, 100, by+46); c.stroke();
+      /* Hands */
+      c.lineWidth = 1.5;
+      c.beginPath(); c.moveTo(28, by+46); c.lineTo(24, by+50); c.stroke();
+      c.beginPath(); c.moveTo(28, by+46); c.lineTo(30, by+51); c.stroke();
+      c.beginPath(); c.moveTo(100, by+46); c.lineTo(104, by+50); c.stroke();
+      c.beginPath(); c.moveTo(100, by+46); c.lineTo(98, by+51); c.stroke();
+      /* Pelvis */
+      c.fillStyle = '#bbb8aa';
+      c.beginPath(); c.ellipse(64, by+56, 12, 4, 0, 0, Math.PI*2); c.fill();
+      /* Legs */
+      c.strokeStyle = '#bbb8aa'; c.lineWidth = 3;
+      c.beginPath(); c.moveTo(56, by+58); c.lineTo(52, by+74); c.stroke();
+      c.beginPath(); c.moveTo(72, by+58); c.lineTo(76, by+74); c.stroke();
+      /* Rusty sword */
+      c.strokeStyle = '#998877'; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(22, by+20); c.lineTo(22, by+50); c.stroke();
+      c.fillStyle = '#aaa';
+      c.beginPath(); c.moveTo(20, by+20); c.lineTo(22, by+12); c.lineTo(24, by+20); c.fill();
+      c.fillStyle = '#664';
+      c.fillRect(18, by+50, 8, 3);
       break;
     }
     case 'orc': {
-      /* Big red-brown orc with heavy armor, fangs, and a massive axe */
-      // body (wide, heavy)
-      px(9,13, 14,14, '#8a3333'); px(10,12, 12,1, '#7a2a2a');
-      // chest armor
-      px(10,14, 12,6, '#555'); px(11,14, 10,1, '#777');
-      px(15,15, 2,4, '#666'); // center plate
-      px(11,18, 4,2, '#444'); px(17,18, 4,2, '#444');
-      // head (big)
-      px(11,4, 10,9, '#9a4040'); px(12,3, 8,1, '#8a3333');
-      // brow (heavy)
-      px(11,6, 10,2, '#7a2a2a');
-      // eyes — burning orange/red
-      px(13,7, 3,2, '#f40'); px(18,7, 3,2, '#f40');
-      px(14,8, 1,1, '#ff0'); px(19,8, 1,1, '#ff0');
-      // nose
-      px(15,9, 2,2, '#7a2a2a');
-      // fangs (big, from lower jaw)
-      px(13,12, 2,2, '#eed'); px(19,12, 2,2, '#eed');
-      px(14,12, 1,1, '#fff'); px(20,12, 1,1, '#fff');
-      // ears
-      px(9,6, 2,3, '#9a4040'); px(21,6, 2,3, '#9a4040');
-      // arms (thick)
-      px(6,14, 3,8, '#8a3333'); px(23,14, 3,8, '#8a3333');
-      // bracers
-      px(6,18, 3,2, '#555'); px(23,18, 3,2, '#555');
-      // fists
-      px(5,22, 4,2, '#9a4040'); px(23,22, 4,2, '#9a4040');
-      // belt
-      px(10,20, 12,1, '#886644'); px(15,20, 2,1, '#ffcc44');
-      // legs
-      px(12,27, 3,3, '#7a2a2a'); px(17,27, 3,3, '#7a2a2a');
-      // boots
-      px(11,29, 4,2, '#333'); px(17,29, 4,2, '#333');
-      // massive axe
-      px(4,5, 1,18, '#864');  // handle
-      px(1,5, 4,2, '#888');   // axe head top
-      px(1,7, 3,3, '#999');   // axe blade
-      px(0,6, 1,3, '#aaa');   // edge
-      px(1,5, 1,1, '#bbb');   // highlight
+      const by = 28;
+      /* Body — massive */
+      const bg = c.createLinearGradient(64, by+4, 64, by+60);
+      bg.addColorStop(0, '#993838'); bg.addColorStop(1, '#5a1a1a');
+      c.fillStyle = bg;
+      c.beginPath();
+      c.moveTo(36, by+8); c.quadraticCurveTo(28, by+32, 36, by+56);
+      c.lineTo(92, by+56); c.quadraticCurveTo(100, by+32, 92, by+8); c.closePath(); c.fill();
+      /* Chest plate */
+      c.fillStyle = '#555';
+      c.beginPath();
+      c.moveTo(42, by+10); c.lineTo(86, by+10);
+      c.quadraticCurveTo(90, by+28, 86, by+34);
+      c.lineTo(42, by+34); c.quadraticCurveTo(38, by+28, 42, by+10); c.fill();
+      c.strokeStyle = '#777'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(64, by+10); c.lineTo(64, by+34); c.stroke();
+      c.beginPath(); c.moveTo(42, by+22); c.lineTo(86, by+22); c.stroke();
+      /* Belt */
+      c.fillStyle = '#8a6a30'; c.fillRect(36, by+40, 56, 5);
+      c.fillStyle = '#ffcc44'; c.beginPath(); c.arc(64, by+42, 3.5, 0, Math.PI*2); c.fill();
+      /* Head — big, square-jawed */
+      const hg = c.createRadialGradient(64, by-8, 4, 64, by-4, 24);
+      hg.addColorStop(0, '#aa4848'); hg.addColorStop(1, '#6a2020');
+      c.fillStyle = hg;
+      c.beginPath();
+      c.moveTo(42, by-2); c.quadraticCurveTo(42, by-24, 64, by-26);
+      c.quadraticCurveTo(86, by-24, 86, by-2);
+      c.quadraticCurveTo(86, by+6, 64, by+8);
+      c.quadraticCurveTo(42, by+6, 42, by-2); c.fill();
+      /* Heavy brow */
+      c.fillStyle = '#5a1818';
+      c.beginPath(); c.moveTo(44, by-12); c.quadraticCurveTo(64, by-18, 84, by-12);
+      c.lineTo(84, by-8); c.quadraticCurveTo(64, by-12, 44, by-8); c.closePath(); c.fill();
+      /* Eyes — burning */
+      eye(54, by-8, 5.5, '#ff4400', '#ffcc00');
+      eye(74, by-8, 5.5, '#ff4400', '#ffcc00');
+      /* Nose */
+      c.fillStyle = '#6a2020';
+      c.beginPath(); c.moveTo(60, by-2); c.quadraticCurveTo(64, by+3, 68, by-2);
+      c.lineTo(66, by-4); c.lineTo(62, by-4); c.closePath(); c.fill();
+      /* Tusks — large */
+      c.fillStyle = '#eee';
+      c.beginPath(); c.moveTo(48, by+4); c.lineTo(44, by+14); c.lineTo(52, by+4); c.fill();
+      c.beginPath(); c.moveTo(76, by+4); c.lineTo(84, by+14); c.lineTo(80, by+4); c.fill();
+      c.fillStyle = '#fff';
+      c.beginPath(); c.moveTo(49, by+4); c.lineTo(46, by+10); c.lineTo(51, by+4); c.fill();
+      c.beginPath(); c.moveTo(77, by+4); c.lineTo(82, by+10); c.lineTo(79, by+4); c.fill();
+      /* Ears */
+      c.fillStyle = '#993838';
+      c.beginPath(); c.moveTo(42, by-6); c.lineTo(30, by-12); c.lineTo(42, by+2); c.fill();
+      c.beginPath(); c.moveTo(86, by-6); c.lineTo(98, by-12); c.lineTo(86, by+2); c.fill();
+      /* Arms */
+      c.strokeStyle = '#7a2828'; c.lineWidth = 10;
+      c.beginPath(); c.moveTo(36, by+14); c.quadraticCurveTo(18, by+28, 20, by+44); c.stroke();
+      c.beginPath(); c.moveTo(92, by+14); c.quadraticCurveTo(110, by+28, 108, by+44); c.stroke();
+      /* Bracers */
+      c.fillStyle = '#555';
+      c.beginPath(); c.ellipse(22, by+36, 7, 4, 0.3, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.ellipse(106, by+36, 7, 4, -0.3, 0, Math.PI*2); c.fill();
+      /* Fists */
+      c.fillStyle = '#993838';
+      c.beginPath(); c.arc(20, by+46, 6, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.arc(108, by+46, 6, 0, Math.PI*2); c.fill();
+      /* Legs */
+      c.strokeStyle = '#5a1a1a'; c.lineWidth = 8;
+      c.beginPath(); c.moveTo(50, by+56); c.lineTo(46, by+72); c.stroke();
+      c.beginPath(); c.moveTo(78, by+56); c.lineTo(82, by+72); c.stroke();
+      /* Boots */
+      c.fillStyle = '#333';
+      c.beginPath(); c.ellipse(46, by+74, 8, 4, 0, 0, Math.PI*2); c.fill();
+      c.beginPath(); c.ellipse(82, by+74, 8, 4, 0, 0, Math.PI*2); c.fill();
+      /* Battle axe */
+      c.strokeStyle = '#7a5520'; c.lineWidth = 3;
+      c.beginPath(); c.moveTo(14, by-10); c.lineTo(14, by+48); c.stroke();
+      /* Axe head */
+      c.fillStyle = '#888';
+      c.beginPath(); c.moveTo(14, by-10); c.quadraticCurveTo(0, by-6, 2, by+2);
+      c.lineTo(14, by); c.closePath(); c.fill();
+      c.fillStyle = '#aaa';
+      c.beginPath(); c.moveTo(14, by-8); c.quadraticCurveTo(4, by-4, 5, by);
+      c.lineTo(14, by-1); c.closePath(); c.fill();
       break;
     }
     default: {
-      px(8,8, 16,16, type.col);
-      px(10,12, 3,3, '#f00'); px(19,12, 3,3, '#f00');
+      c.fillStyle = type.col;
+      c.beginPath(); c.arc(64, 64, 24, 0, Math.PI*2); c.fill();
+      eye(52, 56, 6, '#f00', '#000'); eye(76, 56, 6, '#f00', '#000');
     }
   }
 
@@ -245,13 +402,13 @@ function drawMonster(name) {
 }
 
 function makeMonsterSprite(type) {
-  const cv = drawMonster(type.name);
+  const cv = drawMonster(type.name, type);
   const tex = new THREE.CanvasTexture(cv);
-  tex.magFilter = THREE.NearestFilter;
-  tex.minFilter = THREE.NearestFilter;
+  tex.magFilter = THREE.LinearFilter;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
   const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
   const sprite = new THREE.Sprite(mat);
-  sprite.scale.set(type.size * 1.4, type.size * 1.4, 1);
+  sprite.scale.set(type.size * 1.3, type.size * 1.3, 1);
   return sprite;
 }
 
@@ -288,7 +445,6 @@ export function spawnMonsters() {
   for (const m of monsters) {
     scene.remove(m.sprite);
     scene.remove(m.hpBar.sprite);
-    if (m.glow) scene.remove(m.glow);
   }
   monsters.length = 0;
 
@@ -319,12 +475,6 @@ export function spawnMonsters() {
       hpBar.sprite.visible = false;
       scene.add(hpBar.sprite);
 
-      /* Faint eye glow — visible in dark corridors */
-      const glowCol = type.name === 'skeleton' ? 0xff4444 : 0xff6600;
-      const glow = new THREE.PointLight(glowCol, 0, 3, 2);
-      glow.position.set(mx, type.size * 0.7, mz);
-      scene.add(glow);
-
       monsters.push({
         type,
         hp: type.hp,
@@ -333,7 +483,6 @@ export function spawnMonsters() {
         z: mz,
         sprite,
         hpBar,
-        glow,
         state: 'idle',       // idle, chase, attack
         atkCooldown: 0,
         wanderDir: Math.random() * Math.PI * 2,
@@ -393,6 +542,12 @@ export function updateMonsters(dt) {
       moveToward(m, m.x + wx, m.z + wz, m.type.speed * 0.3 * dt);
     }
 
+    /* Hit flash countdown */
+    if (m.flashTimer > 0) {
+      m.flashTimer -= dt;
+      if (m.flashTimer <= 0) m.sprite.material.color.set(0xffffff);
+    }
+
     /* Bob animation */
     m.bobPhase += dt * (m.state === 'chase' ? 8 : 2.5);
     const bob = Math.sin(m.bobPhase) * (m.state === 'chase' ? 0.06 : 0.03);
@@ -402,9 +557,10 @@ export function updateMonsters(dt) {
     m.sprite.position.set(m.x, baseY + bob, m.z);
     m.hpBar.sprite.position.set(m.x, m.type.size * 1.4 + 0.1 + bob, m.z);
 
-    /* Eye glow — brighter when aggroed */
-    m.glow.position.set(m.x, m.type.size * 0.7, m.z);
-    m.glow.intensity = m.state === 'idle' ? 0.3 : m.state === 'chase' ? 1.2 : 1.8;
+    /* Aggro pulse — scale up slightly when chasing/attacking */
+    const baseScale = m.type.size * 1.3;
+    const pulse = m.state !== 'idle' ? Math.sin(m.bobPhase * 2) * 0.04 : 0;
+    m.sprite.scale.set(baseScale + pulse, baseScale + pulse, 1);
 
     /* Show HP bar only when damaged or chasing */
     m.hpBar.sprite.visible = m.hp < m.maxHp || m.state === 'chase' || m.state === 'attack';
@@ -450,6 +606,7 @@ function monsterBlocked(x, z, self) {
    COMBAT
    ========================================================= */
 let playerAtkCooldown = 0;
+const _atkDir = new THREE.Vector3();
 
 export function updatePlayerAttack(dt) {
   if (playerAtkCooldown > 0) playerAtkCooldown -= dt;
@@ -460,7 +617,7 @@ export function tryPlayerAttack() {
   if (playerAtkCooldown > 0) return;
 
   /* Find closest monster in front of player within attack range */
-  const dir = new THREE.Vector3();
+  const dir = _atkDir;
   camera.getWorldDirection(dir);
   dir.y = 0;
   dir.normalize();
@@ -499,11 +656,9 @@ export function tryPlayerAttack() {
   bestMon.hp -= dmg;
   showMsg(`You hit the ${bestMon.type.name}! (${dmg} damage)`);
 
-  /* Flash red */
+  /* Flash red — timer-based, resolved in updateMonsters */
+  bestMon.flashTimer = 0.12;
   bestMon.sprite.material.color.set(0xff4444);
-  setTimeout(() => {
-    if (!bestMon.dead) bestMon.sprite.material.color.set(0xffffff);
-  }, 120);
 
   updateHpBar(bestMon.hpBar, Math.max(0, bestMon.hp / bestMon.maxHp));
 
@@ -530,7 +685,6 @@ function killMonster(m) {
   m.dead = true;
   scene.remove(m.sprite);
   scene.remove(m.hpBar.sprite);
-  scene.remove(m.glow);
 
   /* Grant XP */
   character.xp += m.type.xp;
