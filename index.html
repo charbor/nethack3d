@@ -230,6 +230,58 @@ canvas {
 #charscreen .cs-nav button.primary:hover { background: #fa0; }
 #charscreen .cs-nav button:disabled { opacity: 0.3; cursor: default; }
 
+/* ── Inventory overlay ── */
+#inventory {
+  background: rgba(0,0,0,0.94);
+  display: none;
+  color: #bbb;
+}
+#inventory .inv-wrap {
+  width: min(480px, 94vw);
+  max-height: 80vh;
+  overflow-y: auto;
+}
+#inventory h2 {
+  font-size: 18px;
+  color: #f80;
+  letter-spacing: 3px;
+  text-align: center;
+  margin-bottom: 16px;
+}
+#inventory .inv-cat {
+  color: #f80;
+  font-size: 13px;
+  letter-spacing: 2px;
+  margin: 14px 0 4px;
+  border-bottom: 1px solid #2a2a2a;
+  padding-bottom: 3px;
+}
+#inventory .inv-item {
+  font-size: 14px;
+  padding: 3px 0 3px 12px;
+  color: #ccc;
+}
+#inventory .inv-slot { color: #fff; }
+#inventory .inv-sym-Weapons  { color: #6cf; }
+#inventory .inv-sym-Armor    { color: #ca6; }
+#inventory .inv-sym-Potions  { color: #f6f; }
+#inventory .inv-sym-Scrolls  { color: #fff; }
+#inventory .inv-sym-Food     { color: #8f8; }
+#inventory .inv-sym-Tools    { color: #aaa; }
+#inventory .inv-hint {
+  text-align: center;
+  color: #555;
+  font-size: 11px;
+  margin-top: 18px;
+  letter-spacing: 1px;
+}
+#inventory .inv-empty {
+  text-align: center;
+  color: #555;
+  font-size: 14px;
+  margin-top: 20px;
+}
+
 /* fallback mouse-capture hint */
 #hint {
   display: none;
@@ -266,6 +318,7 @@ canvas {
     <div><span class="k">W A S D</span> &nbsp;—&nbsp; Move</div>
     <div><span class="k">Mouse</span> &nbsp;—&nbsp; Look around</div>
     <div><span class="k">Shift</span> &nbsp;—&nbsp; Run</div>
+    <div><span class="k">I</span> &nbsp;—&nbsp; Inventory</div>
     <div><span class="k">Esc</span> &nbsp;—&nbsp; Release mouse</div>
   </div>
   <button id="startBtn">DESCEND INTO DARKNESS</button>
@@ -286,7 +339,11 @@ canvas {
   </div>
 </div>
 
-<!-- Three.js r163 global build (works on file://) -->
+<div id="inventory" class="screen">
+  <div class="inv-wrap" id="invBody"></div>
+</div>
+
+<!-- Three.js r128 global build (works on file://) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
 <script>
@@ -349,10 +406,43 @@ const STAT_NAMES = ['str','dex','con','int','wis','cha'];
 const STAT_LABELS = { str:'STR',dex:'DEX',con:'CON',int:'INT',wis:'WIS',cha:'CHA' };
 const ALIGN_ORDER = ['Lawful','Neutral','Chaotic'];
 
+/* ── Item catalogue ── */
+const ITEMS = {
+  longsword:   { name: 'a longsword',               cat: 'Weapons',  sym: ')' },
+  shortsword:  { name: 'a short sword',             cat: 'Weapons',  sym: ')' },
+  dagger:      { name: 'a dagger',                  cat: 'Weapons',  sym: ')' },
+  staff:       { name: 'a quarterstaff',            cat: 'Weapons',  sym: ')' },
+  bow:         { name: 'a bow',                     cat: 'Weapons',  sym: ')' },
+  mace:        { name: 'a mace',                    cat: 'Weapons',  sym: ')' },
+  chainmail:   { name: 'a chain mail',              cat: 'Armor',    sym: '[' },
+  leather:     { name: 'a leather armor',           cat: 'Armor',    sym: '[' },
+  robe:        { name: 'a robe',                    cat: 'Armor',    sym: '[' },
+  cloak:       { name: 'an elven cloak',            cat: 'Armor',    sym: '[' },
+  shield:      { name: 'a small shield',            cat: 'Armor',    sym: '[' },
+  healPotion:  { name: 'a potion of healing',       cat: 'Potions',  sym: '!' },
+  manaPotion:  { name: 'a potion of mana',          cat: 'Potions',  sym: '!' },
+  foodRation:  { name: 'a food ration',             cat: 'Food',     sym: '%' },
+  scrollTele:  { name: 'a scroll of teleportation', cat: 'Scrolls',  sym: '?' },
+  scrollLight: { name: 'a scroll of light',         cat: 'Scrolls',  sym: '?' },
+  torch:       { name: 'a torch',                   cat: 'Tools',    sym: '(' },
+  pickaxe:     { name: 'a pick-axe',                cat: 'Tools',    sym: '(' },
+};
+
+const CAT_ORDER = ['Weapons','Armor','Potions','Scrolls','Food','Tools'];
+
+const STARTING_ITEMS = {
+  Warrior:  ['longsword','chainmail','shield','foodRation','foodRation','healPotion'],
+  Valkyrie: ['longsword','leather','shield','foodRation','foodRation','healPotion'],
+  Rogue:    ['shortsword','dagger','leather','cloak','foodRation','healPotion'],
+  Ranger:   ['bow','shortsword','leather','foodRation','foodRation','foodRation'],
+  Wizard:   ['staff','robe','scrollTele','scrollLight','manaPotion','healPotion','foodRation'],
+  Healer:   ['mace','robe','healPotion','healPotion','healPotion','foodRation','foodRation'],
+};
+
 /* mutable character object — filled in during char creation */
 const character = {
   name: 'Hack', race: 'Human', role: 'Warrior', align: 'Neutral',
-  stats: {}, hp: { cur: 10, max: 10 }, xp: 0, level: 1,
+  stats: {}, hp: { cur: 10, max: 10 }, xp: 0, level: 1, inventory: [],
 };
 
 /* =========================================================
@@ -535,6 +625,18 @@ function confirmChar() {
   character.align = cs.align;
   character.stats = stats;
   character.hp    = { cur: hpMax, max: hpMax };
+
+  /* Starting inventory */
+  character.inventory = [];
+  const starts = STARTING_ITEMS[cs.role] || [];
+  for (let i = 0; i < starts.length; i++) {
+    const id = starts[i];
+    character.inventory.push({
+      slot: String.fromCharCode(97 + i), // a, b, c, ...
+      id,
+      item: ITEMS[id],
+    });
+  }
 
   elCharScreen.style.display = 'none';
   startGame();
@@ -904,7 +1006,7 @@ document.addEventListener('pointerlockerror', () => {
 });
 
 document.addEventListener('mousemove', e => {
-  if (!locked && !mouseActive) return;
+  if ((!locked && !mouseActive) || inventoryOpen) return;
   const s = 0.0018;
   player.yaw   -= e.movementX * s;
   player.pitch  = Math.max(-1.45, Math.min(1.45, player.pitch - e.movementY * s));
@@ -956,10 +1058,70 @@ elPaused.style.cursor = 'pointer';
 
 /* Esc in fallback mode → release look, show paused */
 document.addEventListener('keydown', e => {
-  if (e.code === 'Escape' && fallbackMode && mouseActive) {
+  if (e.code === 'Escape' && fallbackMode && mouseActive && !inventoryOpen) {
     mouseActive = false;
     setHint('click to capture mouse');
     elPaused.style.display = 'flex';
+  }
+});
+
+/* =========================================================
+   INVENTORY
+   ========================================================= */
+let inventoryOpen = false;
+const elInventory = document.getElementById('inventory');
+const elInvBody   = document.getElementById('invBody');
+
+function renderInventory() {
+  const inv = character.inventory;
+  if (inv.length === 0) {
+    elInvBody.innerHTML =
+      `<h2>INVENTORY</h2><div class="inv-empty">You are empty-handed.</div>` +
+      `<div class="inv-hint">press i to close</div>`;
+    return;
+  }
+
+  /* Group by category */
+  const groups = {};
+  for (const entry of inv) {
+    const cat = entry.item.cat;
+    if (!groups[cat]) groups[cat] = [];
+    groups[cat].push(entry);
+  }
+
+  let html = `<h2>INVENTORY — ${character.name} the ${character.role}</h2>`;
+  for (const cat of CAT_ORDER) {
+    if (!groups[cat]) continue;
+    html += `<div class="inv-cat">${cat}</div>`;
+    for (const e of groups[cat]) {
+      html += `<div class="inv-item">` +
+        `<span class="inv-slot">${e.slot}</span> - ${e.item.name} ` +
+        `<span class="inv-sym-${cat}">${e.item.sym}</span></div>`;
+    }
+  }
+  html += `<div class="inv-hint">press i to close</div>`;
+  elInvBody.innerHTML = html;
+}
+
+function toggleInventory() {
+  if (!gameStarted) return;
+  inventoryOpen = !inventoryOpen;
+  if (inventoryOpen) {
+    renderInventory();
+    elInventory.style.display = 'flex';
+  } else {
+    elInventory.style.display = 'none';
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.code === 'KeyI' && gameStarted) {
+    toggleInventory();
+  }
+  /* Escape also closes inventory */
+  if (e.code === 'Escape' && inventoryOpen) {
+    inventoryOpen = false;
+    elInventory.style.display = 'none';
   }
 });
 
@@ -990,7 +1152,7 @@ const _fwd      = new THREE.Vector3();
 const _right    = new THREE.Vector3();
 
 function update(dt) {
-  if (!locked && !mouseActive) return;
+  if ((!locked && !mouseActive) || inventoryOpen) return;
 
   /* Movement */
   camera.getWorldDirection(_fwd);
