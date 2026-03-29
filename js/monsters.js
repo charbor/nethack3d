@@ -35,46 +35,51 @@ const yellowEyeMat = new THREE.MeshBasicMaterial({ color: 0xeecc00 });
 const orangeEyeMat = new THREE.MeshBasicMaterial({ color: 0xff6600 });
 const soulFireMat = new THREE.MeshBasicMaterial({ color: 0xff3322 });
 
-/* Per-type materials (created once, shared across instances) */
+/* Per-type materials — Phong for specular torchlight gleam */
 const mats = {
   rat: {
-    body: new THREE.MeshLambertMaterial({ color: 0x6a4a18 }),
-    head: new THREE.MeshLambertMaterial({ color: 0x7a5a20 }),
-    tail: new THREE.MeshLambertMaterial({ color: 0x5a3a10 }),
-    nose: new THREE.MeshLambertMaterial({ color: 0xffaaaa }),
+    body: new THREE.MeshPhongMaterial({ color: 0x6a4a18, emissive: 0x0a0604, specular: 0x221a0a, shininess: 6 }),
+    head: new THREE.MeshPhongMaterial({ color: 0x7a5a20, emissive: 0x0a0604, specular: 0x221a0a, shininess: 6 }),
+    tail: new THREE.MeshPhongMaterial({ color: 0x5a3a10, emissive: 0x060402, specular: 0x1a1208, shininess: 4 }),
+    nose: new THREE.MeshPhongMaterial({ color: 0xffaaaa, emissive: 0x100404, specular: 0x442222, shininess: 18 }),
+    drool: new THREE.MeshPhongMaterial({ color: 0x664422, emissive: 0x0a0402, specular: 0x442a1a, shininess: 30, transparent: true, opacity: 0.6, depthWrite: false }),
   },
   bat: {
-    body: new THREE.MeshLambertMaterial({ color: 0x2a2a30 }),
-    wing: new THREE.MeshLambertMaterial({ color: 0x222228, side: THREE.DoubleSide }),
-    fang: new THREE.MeshLambertMaterial({ color: 0xeeeeee }),
+    body: new THREE.MeshPhongMaterial({ color: 0x2a2a30, emissive: 0x060608, specular: 0x222230, shininess: 10 }),
+    wing: new THREE.MeshPhongMaterial({ color: 0x222228, emissive: 0x08040a, specular: 0x1a1a22, shininess: 8, side: THREE.DoubleSide }),
+    fang: new THREE.MeshPhongMaterial({ color: 0xeeeeee, emissive: 0x040404, specular: 0x444444, shininess: 25 }),
   },
   kobold: {
-    body: new THREE.MeshLambertMaterial({ color: 0x2a5a2a }),
-    head: new THREE.MeshLambertMaterial({ color: 0x3a7a3a }),
-    arm: new THREE.MeshLambertMaterial({ color: 0x2a5a2a }),
-    shaft: new THREE.MeshLambertMaterial({ color: 0x8a6a30 }),
-    tip: new THREE.MeshLambertMaterial({ color: 0xbbbbbb }),
+    body: new THREE.MeshPhongMaterial({ color: 0x2a5a2a, emissive: 0x040a04, specular: 0x1a2a1a, shininess: 12 }),
+    head: new THREE.MeshPhongMaterial({ color: 0x3a7a3a, emissive: 0x060c06, specular: 0x1a3a1a, shininess: 12 }),
+    arm:  new THREE.MeshPhongMaterial({ color: 0x2a5a2a, emissive: 0x040a04, specular: 0x1a2a1a, shininess: 10 }),
+    shaft: new THREE.MeshPhongMaterial({ color: 0x8a6a30, emissive: 0x040200, specular: 0x0a0804, shininess: 4 }),
+    tip:  new THREE.MeshPhongMaterial({ color: 0xbbbbbb, emissive: 0x040404, specular: 0x444444, shininess: 28 }),
+    vest: new THREE.MeshPhongMaterial({ color: 0x1a3a1a, emissive: 0x040804, specular: 0x2a4a2a, shininess: 18 }),
   },
   goblin: {
-    body: new THREE.MeshLambertMaterial({ color: 0x1a4a2a }),
-    head: new THREE.MeshLambertMaterial({ color: 0x2a7a4a }),
-    arm: new THREE.MeshLambertMaterial({ color: 0x1a5a3a }),
-    belt: new THREE.MeshLambertMaterial({ color: 0x8a6a30 }),
-    club: new THREE.MeshLambertMaterial({ color: 0x654433 }),
-    tusk: new THREE.MeshLambertMaterial({ color: 0xeeeedd }),
+    body: new THREE.MeshPhongMaterial({ color: 0x1a4a2a, emissive: 0x020604, specular: 0x0a1a0a, shininess: 5 }),
+    head: new THREE.MeshPhongMaterial({ color: 0x2a7a4a, emissive: 0x040a06, specular: 0x1a2a1a, shininess: 6 }),
+    arm:  new THREE.MeshPhongMaterial({ color: 0x1a5a3a, emissive: 0x020804, specular: 0x0a1a0a, shininess: 5 }),
+    belt: new THREE.MeshPhongMaterial({ color: 0x8a6a30, emissive: 0x060400, specular: 0x221a08, shininess: 8 }),
+    club: new THREE.MeshPhongMaterial({ color: 0x654433, emissive: 0x040200, specular: 0x0a0804, shininess: 3 }),
+    tusk: new THREE.MeshPhongMaterial({ color: 0xeeeedd, emissive: 0x040402, specular: 0x333322, shininess: 15 }),
+    pauldron: new THREE.MeshPhongMaterial({ color: 0x4a3a20, emissive: 0x040200, specular: 0x221a0a, shininess: 12 }),
   },
   skeleton: {
-    bone: new THREE.MeshLambertMaterial({ color: 0xddd8cc }),
-    dark: new THREE.MeshLambertMaterial({ color: 0x0a0808 }),
-    sword: new THREE.MeshLambertMaterial({ color: 0x998877 }),
+    bone:  new THREE.MeshPhongMaterial({ color: 0xddd8cc, emissive: 0x080806, specular: 0x333028, shininess: 14 }),
+    dark:  new THREE.MeshPhongMaterial({ color: 0x0a0808, emissive: 0x000000, specular: 0x000000, shininess: 0 }),
+    sword: new THREE.MeshPhongMaterial({ color: 0x998877, emissive: 0x040302, specular: 0x332a22, shininess: 18 }),
+    cloth: new THREE.MeshPhongMaterial({ color: 0x2a2218, emissive: 0x020200, specular: 0x0a0804, shininess: 3, transparent: true, opacity: 0.5, side: THREE.DoubleSide, depthWrite: false }),
   },
   orc: {
-    body: new THREE.MeshLambertMaterial({ color: 0x5a1a1a }),
-    head: new THREE.MeshLambertMaterial({ color: 0x993838 }),
-    armor: new THREE.MeshLambertMaterial({ color: 0x555555 }),
-    tusk: new THREE.MeshLambertMaterial({ color: 0xeeeedd }),
-    shaft: new THREE.MeshLambertMaterial({ color: 0x7a5520 }),
-    axe: new THREE.MeshLambertMaterial({ color: 0x888888 }),
+    body:  new THREE.MeshPhongMaterial({ color: 0x5a1a1a, emissive: 0x0a0404, specular: 0x1a0808, shininess: 5 }),
+    head:  new THREE.MeshPhongMaterial({ color: 0x993838, emissive: 0x0a0404, specular: 0x221010, shininess: 6 }),
+    armor: new THREE.MeshPhongMaterial({ color: 0x555555, emissive: 0x040404, specular: 0x333333, shininess: 22 }),
+    tusk:  new THREE.MeshPhongMaterial({ color: 0xeeeedd, emissive: 0x040402, specular: 0x333322, shininess: 15 }),
+    shaft: new THREE.MeshPhongMaterial({ color: 0x7a5520, emissive: 0x040200, specular: 0x0a0804, shininess: 3 }),
+    axe:   new THREE.MeshPhongMaterial({ color: 0x888888, emissive: 0x060606, specular: 0x444444, shininess: 25 }),
+    scar:  new THREE.MeshBasicMaterial({ color: 0x660000 }),
   },
 };
 
@@ -158,6 +163,23 @@ function buildMonsterMesh(type) {
           g.add(foot);
         }
       }
+
+      // --- DETAIL: hunched back ridge ---
+      const ridge = new THREE.Mesh(
+        new THREE.BoxGeometry(0.04, 0.04, 0.2),
+        mats.rat.tail
+      );
+      ridge.position.set(0, 0.12, -0.02);
+      g.add(ridge);
+
+      // --- DETAIL: drool drop ---
+      const drool = new THREE.Mesh(
+        new THREE.SphereGeometry(0.012, 4, 3),
+        mats.rat.drool
+      );
+      drool.position.set(0, 0.02, -0.27);
+      g.add(drool);
+
       break;
     }
 
@@ -173,7 +195,6 @@ function buildMonsterMesh(type) {
 
       // Wings — PlaneGeometry angled out
       const wingGeo = new THREE.PlaneGeometry(0.28, 0.14, 3, 1);
-      // Warp wing vertices for bat shape
       const wingL = new THREE.Mesh(wingGeo, mats.bat.wing);
       wingL.position.set(-0.2, 0.1, 0);
       wingL.rotation.set(0, 0, 0.3);
@@ -183,6 +204,20 @@ function buildMonsterMesh(type) {
       wingR.position.set(0.2, 0.1, 0);
       wingR.rotation.set(0, 0, -0.3);
       g.add(wingR);
+
+      // --- DETAIL: wing bone struts ---
+      const boneGeo = new THREE.CylinderGeometry(0.005, 0.003, 0.22, 3);
+      const boneL = new THREE.Mesh(boneGeo, mats.bat.body);
+      boneL.position.set(-0.18, 0.1, 0.01);
+      boneL.rotation.z = 1.2;
+      g.add(boneL);
+      const boneR = new THREE.Mesh(boneGeo, mats.bat.body);
+      boneR.position.set(0.18, 0.1, 0.01);
+      boneR.rotation.z = -1.2;
+      g.add(boneR);
+
+      g.userData.wingL = wingL;
+      g.userData.wingR = wingR;
 
       // Ears — small cones
       const earGeo = new THREE.ConeGeometry(0.02, 0.06, 4);
@@ -223,6 +258,7 @@ function buildMonsterMesh(type) {
       );
       torso.position.y = 0.25;
       g.add(torso);
+      g.userData.torso = torso;
 
       // Head
       const head = new THREE.Mesh(
@@ -282,6 +318,24 @@ function buildMonsterMesh(type) {
       );
       tip.position.set(0.2, 0.63, 0);
       g.add(tip);
+
+      // --- DETAIL: reptilian tail ---
+      const kTail = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.02, 0.01, 0.2, 4),
+        mats.kobold.body
+      );
+      kTail.position.set(0, 0.12, 0.14);
+      kTail.rotation.x = 0.6;
+      g.add(kTail);
+
+      // --- DETAIL: crude scale vest ---
+      const vest = new THREE.Mesh(
+        new THREE.BoxGeometry(0.22, 0.2, 0.16),
+        mats.kobold.vest
+      );
+      vest.position.y = 0.3;
+      g.add(vest);
+
       break;
     }
 
@@ -294,6 +348,7 @@ function buildMonsterMesh(type) {
       );
       torso.position.y = 0.28;
       g.add(torso);
+      g.userData.torso = torso;
 
       // Belt
       const belt = new THREE.Mesh(
@@ -380,6 +435,25 @@ function buildMonsterMesh(type) {
       );
       clubHead.position.set(-0.26, 0.44, 0);
       g.add(clubHead);
+
+      // --- DETAIL: shoulder pauldrons ---
+      const pauldronGeo = new THREE.SphereGeometry(0.05, 5, 4);
+      const pauldronL = new THREE.Mesh(pauldronGeo, mats.goblin.pauldron);
+      pauldronL.position.set(-0.18, 0.44, 0);
+      g.add(pauldronL);
+      const pauldronR = new THREE.Mesh(pauldronGeo, mats.goblin.pauldron);
+      pauldronR.position.set(0.18, 0.44, 0);
+      g.add(pauldronR);
+
+      // --- DETAIL: bone necklace ---
+      const necklace = new THREE.Mesh(
+        new THREE.TorusGeometry(0.04, 0.008, 4, 6),
+        mats.goblin.tusk
+      );
+      necklace.position.set(0, 0.46, -0.06);
+      necklace.rotation.x = Math.PI / 2;
+      g.add(necklace);
+
       break;
     }
 
@@ -418,6 +492,7 @@ function buildMonsterMesh(type) {
       );
       jaw.position.set(0, 0.53, -0.03);
       g.add(jaw);
+      g.userData.jaw = jaw;
 
       // Spine
       const spine = new THREE.Mesh(
@@ -478,6 +553,16 @@ function buildMonsterMesh(type) {
       );
       hilt.position.set(0.2, 0.28, 0);
       g.add(hilt);
+
+      // --- DETAIL: tattered cloth remnant ---
+      const cloth = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.1, 0.18),
+        mats.skeleton.cloth
+      );
+      cloth.position.set(-0.08, 0.42, 0.02);
+      cloth.rotation.set(0.1, 0.3, 0.15);
+      g.add(cloth);
+
       break;
     }
 
@@ -490,6 +575,7 @@ function buildMonsterMesh(type) {
       );
       torso.position.y = 0.35;
       g.add(torso);
+      g.userData.torso = torso;
 
       // Chest plate
       const plate = new THREE.Mesh(
@@ -595,6 +681,26 @@ function buildMonsterMesh(type) {
       );
       axeHead.position.set(-0.38, 0.6, 0);
       g.add(axeHead);
+
+      // --- DETAIL: shoulder pauldrons ---
+      const oPauldronGeo = new THREE.SphereGeometry(0.08, 5, 4);
+      const oPauldronL = new THREE.Mesh(oPauldronGeo, mats.orc.armor);
+      oPauldronL.position.set(-0.26, 0.52, 0);
+      oPauldronL.scale.set(1, 0.6, 1);
+      g.add(oPauldronL);
+      const oPauldronR = new THREE.Mesh(oPauldronGeo, mats.orc.armor);
+      oPauldronR.position.set(0.26, 0.52, 0);
+      oPauldronR.scale.set(1, 0.6, 1);
+      g.add(oPauldronR);
+
+      // --- DETAIL: war scar on face ---
+      const scar = new THREE.Mesh(
+        new THREE.BoxGeometry(0.005, 0.12, 0.005),
+        mats.orc.scar
+      );
+      scar.position.set(0.04, 0.68, -0.1);
+      g.add(scar);
+
       break;
     }
 
@@ -685,6 +791,8 @@ export function spawnMonsters() {
       const mz = room.y + 1 + Math.floor(Math.random() * (room.h - 2)) + 0.5;
 
       const sprite = buildMonsterMesh(type);
+      const sv = 0.9 + Math.random() * 0.2;
+      sprite.scale.set(sv, sv, sv);
       cacheColors(sprite);
       sprite.position.set(mx, 0, mz);
       scene.add(sprite);
@@ -702,6 +810,7 @@ export function spawnMonsters() {
         z: mz,
         sprite,
         hpBar,
+        baseScale: sv,
         state: 'idle',       // idle, chase, attack
         atkCooldown: 0,
         wanderDir: Math.random() * Math.PI * 2,
@@ -790,8 +899,40 @@ export function updateMonsters(dt) {
 
     /* Aggro pulse — scale up slightly when chasing/attacking */
     const pulse = m.state !== 'idle' ? Math.sin(m.bobPhase * 2) * 0.04 : 0;
-    const s = 1 + pulse;
+    const bs = m.baseScale || 1;
+    const s = bs + pulse;
     m.sprite.scale.set(s, s, s);
+
+    /* --- Type-specific animations --- */
+    const ud = m.sprite.userData;
+
+    /* Bat wing flap */
+    if (m.type.name === 'bat' && ud.wingL && ud.wingR) {
+      const wingAngle = Math.sin(m.bobPhase * 2.5) * 0.5;
+      ud.wingL.rotation.z =  0.3 + wingAngle;
+      ud.wingR.rotation.z = -0.3 - wingAngle;
+    }
+
+    /* Skeleton jaw clack when attacking */
+    if (m.type.name === 'skeleton' && ud.jaw) {
+      if (m.state === 'attack') {
+        const jawOpen = Math.abs(Math.sin(m.bobPhase * 4)) * 0.025;
+        ud.jaw.position.y = 0.53 - jawOpen;
+      } else {
+        ud.jaw.position.y = 0.53;
+      }
+    }
+
+    /* Skeleton soul-fire eye flicker */
+    if (m.type.name === 'skeleton') {
+      const flicker = 0.6 + Math.sin(m.bobPhase * 3) * 0.3 + Math.sin(m.bobPhase * 7.3) * 0.1;
+      soulFireMat.color.setRGB(flicker, flicker * 0.2, flicker * 0.12);
+    }
+
+    /* Torso lean forward when chasing (bipeds only) */
+    if (ud.torso) {
+      ud.torso.rotation.x = m.state === 'chase' ? -0.15 : 0;
+    }
 
     /* Show HP bar only when damaged or chasing */
     m.hpBar.sprite.visible = m.hp < m.maxHp || m.state === 'chase' || m.state === 'attack';
