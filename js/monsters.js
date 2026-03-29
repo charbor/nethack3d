@@ -26,392 +26,601 @@ const TIERS = [
 ];
 
 /* =========================================================
-   MONSTER SPRITES — smooth canvas-drawn, bestiary style
+   3D MONSTER MESHES — built from basic geometries
    ========================================================= */
-function drawMonster(name, type) {
-  const sz = 128;
-  const cv = document.createElement('canvas');
-  cv.width = cv.height = sz;
-  const c = cv.getContext('2d');
-  c.lineCap = 'round'; c.lineJoin = 'round';
 
-  /* Helpers */
-  function eye(cx, cy, r, glowCol, pupilCol) {
-    /* Glow halo */
-    const g = c.createRadialGradient(cx, cy, 0, cx, cy, r * 2.5);
-    g.addColorStop(0, glowCol);
-    g.addColorStop(1, 'transparent');
-    c.fillStyle = g; c.fillRect(cx - r*3, cy - r*3, r*6, r*6);
-    /* Eyeball */
-    c.fillStyle = glowCol;
-    c.beginPath(); c.ellipse(cx, cy, r, r * 0.85, 0, 0, Math.PI*2); c.fill();
-    /* Slit pupil */
-    c.fillStyle = pupilCol || '#000';
-    c.beginPath(); c.ellipse(cx, cy, r*0.35, r*0.7, 0, 0, Math.PI*2); c.fill();
-  }
+/* Shared eye material — glows in the dark */
+const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff2200 });
+const yellowEyeMat = new THREE.MeshBasicMaterial({ color: 0xeecc00 });
+const orangeEyeMat = new THREE.MeshBasicMaterial({ color: 0xff6600 });
+const soulFireMat = new THREE.MeshBasicMaterial({ color: 0xff3322 });
 
-  switch (name) {
+/* Per-type materials (created once, shared across instances) */
+const mats = {
+  rat: {
+    body: new THREE.MeshLambertMaterial({ color: 0x6a4a18 }),
+    head: new THREE.MeshLambertMaterial({ color: 0x7a5a20 }),
+    tail: new THREE.MeshLambertMaterial({ color: 0x5a3a10 }),
+    nose: new THREE.MeshLambertMaterial({ color: 0xffaaaa }),
+  },
+  bat: {
+    body: new THREE.MeshLambertMaterial({ color: 0x2a2a30 }),
+    wing: new THREE.MeshLambertMaterial({ color: 0x222228, side: THREE.DoubleSide }),
+    fang: new THREE.MeshLambertMaterial({ color: 0xeeeeee }),
+  },
+  kobold: {
+    body: new THREE.MeshLambertMaterial({ color: 0x2a5a2a }),
+    head: new THREE.MeshLambertMaterial({ color: 0x3a7a3a }),
+    arm: new THREE.MeshLambertMaterial({ color: 0x2a5a2a }),
+    shaft: new THREE.MeshLambertMaterial({ color: 0x8a6a30 }),
+    tip: new THREE.MeshLambertMaterial({ color: 0xbbbbbb }),
+  },
+  goblin: {
+    body: new THREE.MeshLambertMaterial({ color: 0x1a4a2a }),
+    head: new THREE.MeshLambertMaterial({ color: 0x2a7a4a }),
+    arm: new THREE.MeshLambertMaterial({ color: 0x1a5a3a }),
+    belt: new THREE.MeshLambertMaterial({ color: 0x8a6a30 }),
+    club: new THREE.MeshLambertMaterial({ color: 0x654433 }),
+    tusk: new THREE.MeshLambertMaterial({ color: 0xeeeedd }),
+  },
+  skeleton: {
+    bone: new THREE.MeshLambertMaterial({ color: 0xddd8cc }),
+    dark: new THREE.MeshLambertMaterial({ color: 0x0a0808 }),
+    sword: new THREE.MeshLambertMaterial({ color: 0x998877 }),
+  },
+  orc: {
+    body: new THREE.MeshLambertMaterial({ color: 0x5a1a1a }),
+    head: new THREE.MeshLambertMaterial({ color: 0x993838 }),
+    armor: new THREE.MeshLambertMaterial({ color: 0x555555 }),
+    tusk: new THREE.MeshLambertMaterial({ color: 0xeeeedd }),
+    shaft: new THREE.MeshLambertMaterial({ color: 0x7a5520 }),
+    axe: new THREE.MeshLambertMaterial({ color: 0x888888 }),
+  },
+};
+
+/* Shared geometry cache */
+const geo = {
+  eyeSmall: new THREE.SphereGeometry(0.02, 6, 4),
+  eyeMed:   new THREE.SphereGeometry(0.03, 6, 4),
+  eyeLg:    new THREE.SphereGeometry(0.04, 6, 4),
+};
+
+function buildMonsterMesh(type) {
+  const g = new THREE.Group();
+
+  switch (type.name) {
+
+    /* ── RAT ── */
     case 'rat': {
-      const by = 70;
-      /* Tail — thin curve */
-      c.strokeStyle = '#7a5520'; c.lineWidth = 2.5;
-      c.beginPath(); c.moveTo(22, by+10); c.quadraticCurveTo(10, by-5, 18, by-18); c.stroke();
-      /* Body — low oval */
-      const bg = c.createRadialGradient(64, by+6, 4, 64, by+6, 30);
-      bg.addColorStop(0, '#9a7a30'); bg.addColorStop(1, '#5a3a10');
-      c.fillStyle = bg;
-      c.beginPath(); c.ellipse(64, by+6, 28, 14, -0.1, 0, Math.PI*2); c.fill();
-      /* Fur strokes */
-      c.strokeStyle = '#6a4a18'; c.lineWidth = 1;
-      for (let i = 0; i < 8; i++) {
-        const fx = 44 + Math.random()*36, fy = by - 2 + Math.random()*16;
-        c.beginPath(); c.moveTo(fx, fy); c.lineTo(fx + 3 - Math.random()*6, fy + 4); c.stroke();
-      }
-      /* Head — pointed snout */
-      const hg = c.createRadialGradient(88, by-2, 2, 88, by, 16);
-      hg.addColorStop(0, '#aa8a38'); hg.addColorStop(1, '#6a4a18');
-      c.fillStyle = hg;
-      c.beginPath(); c.moveTo(80, by-10); c.quadraticCurveTo(100, by-8, 104, by+2);
-      c.quadraticCurveTo(100, by+10, 80, by+8); c.closePath(); c.fill();
-      /* Ears */
-      c.fillStyle = '#a07838';
-      c.beginPath(); c.ellipse(82, by-14, 5, 7, -0.3, 0, Math.PI*2); c.fill();
-      c.beginPath(); c.ellipse(92, by-14, 5, 7, 0.3, 0, Math.PI*2); c.fill();
-      c.fillStyle = '#704020';
-      c.beginPath(); c.ellipse(82, by-13, 3, 4, -0.3, 0, Math.PI*2); c.fill();
-      c.beginPath(); c.ellipse(92, by-13, 3, 4, 0.3, 0, Math.PI*2); c.fill();
-      /* Eyes */
-      eye(85, by-2, 3.5, '#ff2200', '#000');
-      eye(95, by-2, 3.5, '#ff2200', '#000');
-      /* Nose */
-      c.fillStyle = '#ffaaaa'; c.beginPath(); c.arc(103, by+2, 2, 0, Math.PI*2); c.fill();
-      /* Whiskers */
-      c.strokeStyle = 'rgba(200,180,150,0.6)'; c.lineWidth = 0.8;
-      c.beginPath(); c.moveTo(103, by); c.lineTo(118, by-6); c.stroke();
-      c.beginPath(); c.moveTo(103, by+4); c.lineTo(118, by+8); c.stroke();
-      /* Feet */
-      c.fillStyle = '#5a3a10';
-      c.beginPath(); c.ellipse(48, by+18, 5, 3, 0, 0, Math.PI*2); c.fill();
-      c.beginPath(); c.ellipse(74, by+18, 5, 3, 0, 0, Math.PI*2); c.fill();
-      break;
-    }
-    case 'bat': {
-      const cy = 52;
-      /* Wings — smooth curves */
-      c.fillStyle = '#2a2a30';
-      c.beginPath();
-      c.moveTo(64, cy); // body center
-      c.quadraticCurveTo(40, cy-20, 8, cy-18);  // left wing tip
-      c.quadraticCurveTo(12, cy-4, 28, cy+6);    // left wing bottom
-      c.lineTo(64, cy+4);
-      c.moveTo(64, cy);
-      c.quadraticCurveTo(88, cy-20, 120, cy-18);
-      c.quadraticCurveTo(116, cy-4, 100, cy+6);
-      c.lineTo(64, cy+4);
-      c.fill();
-      /* Wing membrane lines */
-      c.strokeStyle = '#3a3a44'; c.lineWidth = 1;
-      c.beginPath(); c.moveTo(60, cy); c.quadraticCurveTo(36, cy-14, 14, cy-14); c.stroke();
-      c.beginPath(); c.moveTo(56, cy+2); c.quadraticCurveTo(38, cy-6, 20, cy-6); c.stroke();
-      c.beginPath(); c.moveTo(68, cy); c.quadraticCurveTo(92, cy-14, 114, cy-14); c.stroke();
-      c.beginPath(); c.moveTo(72, cy+2); c.quadraticCurveTo(90, cy-6, 108, cy-6); c.stroke();
-      /* Body */
-      const bg = c.createRadialGradient(64, cy+4, 2, 64, cy+4, 14);
-      bg.addColorStop(0, '#555'); bg.addColorStop(1, '#2a2a30');
-      c.fillStyle = bg;
-      c.beginPath(); c.ellipse(64, cy+4, 12, 14, 0, 0, Math.PI*2); c.fill();
-      /* Ears */
-      c.fillStyle = '#444';
-      c.beginPath(); c.moveTo(54, cy-10); c.lineTo(50, cy-26); c.lineTo(58, cy-14); c.fill();
-      c.beginPath(); c.moveTo(74, cy-10); c.lineTo(78, cy-26); c.lineTo(70, cy-14); c.fill();
-      /* Eyes */
-      eye(58, cy-2, 4, '#ff0000', '#000');
-      eye(70, cy-2, 4, '#ff0000', '#000');
-      /* Fangs */
-      c.fillStyle = '#eee'; c.lineWidth = 0;
-      c.beginPath(); c.moveTo(60, cy+10); c.lineTo(62, cy+16); c.lineTo(64, cy+10); c.fill();
-      c.beginPath(); c.moveTo(64, cy+10); c.lineTo(66, cy+16); c.lineTo(68, cy+10); c.fill();
-      break;
-    }
-    case 'kobold': {
-      const by = 48;
-      /* Body */
-      const bg = c.createLinearGradient(64, by-8, 64, by+40);
-      bg.addColorStop(0, '#4a8a4a'); bg.addColorStop(1, '#2a5a2a');
-      c.fillStyle = bg;
-      c.beginPath(); c.moveTo(48, by); c.quadraticCurveTo(44, by+20, 48, by+38);
-      c.lineTo(80, by+38); c.quadraticCurveTo(84, by+20, 80, by); c.closePath(); c.fill();
-      /* Scale pattern */
-      c.strokeStyle = 'rgba(0,40,0,0.3)'; c.lineWidth = 0.8;
-      for (let row = 0; row < 5; row++) {
-        const yy = by + 4 + row * 7;
-        for (let col = 0; col < 4; col++) {
-          const xx = 50 + col * 8 + (row % 2) * 4;
-          c.beginPath(); c.arc(xx, yy, 3.5, 0, Math.PI); c.stroke();
+      // Body — flat elongated box
+      const body = new THREE.Mesh(
+        new THREE.BoxGeometry(0.18, 0.1, 0.28),
+        mats.rat.body
+      );
+      body.position.y = 0.05;
+      g.add(body);
+
+      // Head — small sphere with cone snout
+      const head = new THREE.Mesh(
+        new THREE.SphereGeometry(0.06, 8, 6),
+        mats.rat.head
+      );
+      head.position.set(0, 0.08, -0.18);
+      g.add(head);
+
+      const snout = new THREE.Mesh(
+        new THREE.ConeGeometry(0.03, 0.06, 6),
+        mats.rat.head
+      );
+      snout.rotation.x = -Math.PI / 2;
+      snout.position.set(0, 0.06, -0.26);
+      g.add(snout);
+
+      // Nose
+      const nose = new THREE.Mesh(geo.eyeSmall, mats.rat.nose);
+      nose.position.set(0, 0.06, -0.29);
+      g.add(nose);
+
+      // Eyes
+      const eyeL = new THREE.Mesh(geo.eyeSmall, eyeMat);
+      eyeL.position.set(-0.04, 0.11, -0.2);
+      g.add(eyeL);
+      const eyeR = new THREE.Mesh(geo.eyeSmall, eyeMat);
+      eyeR.position.set(0.04, 0.11, -0.2);
+      g.add(eyeR);
+
+      // Ears
+      const earGeo = new THREE.SphereGeometry(0.025, 6, 4);
+      const earL = new THREE.Mesh(earGeo, mats.rat.head);
+      earL.position.set(-0.04, 0.13, -0.16);
+      earL.scale.set(1, 1.4, 0.6);
+      g.add(earL);
+      const earR = new THREE.Mesh(earGeo, mats.rat.head);
+      earR.position.set(0.04, 0.13, -0.16);
+      earR.scale.set(1, 1.4, 0.6);
+      g.add(earR);
+
+      // Tail — thin cylinder curved back
+      const tail = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.008, 0.004, 0.22, 4),
+        mats.rat.tail
+      );
+      tail.position.set(0, 0.08, 0.2);
+      tail.rotation.x = 0.8;
+      g.add(tail);
+
+      // Feet
+      const footGeo = new THREE.BoxGeometry(0.04, 0.02, 0.04);
+      for (const xOff of [-0.07, 0.07]) {
+        for (const zOff of [-0.08, 0.08]) {
+          const foot = new THREE.Mesh(footGeo, mats.rat.tail);
+          foot.position.set(xOff, 0.01, zOff);
+          g.add(foot);
         }
       }
-      /* Head */
-      c.fillStyle = '#4a8a4a';
-      c.beginPath(); c.ellipse(64, by-14, 14, 12, 0, 0, Math.PI*2); c.fill();
-      /* Snout */
-      c.fillStyle = '#3a7a3a';
-      c.beginPath(); c.ellipse(76, by-10, 8, 6, 0.2, 0, Math.PI*2); c.fill();
-      /* Eyes — yellow slits */
-      eye(58, by-16, 4, '#eecc00', '#111');
-      eye(68, by-16, 4, '#eecc00', '#111');
-      /* Nostrils */
-      c.fillStyle = '#2a5a2a';
-      c.beginPath(); c.arc(81, by-10, 1.5, 0, Math.PI*2); c.fill();
-      /* Teeth */
-      c.fillStyle = '#eee';
-      c.beginPath(); c.moveTo(74, by-5); c.lineTo(75.5, by-1); c.lineTo(77, by-5); c.fill();
-      c.beginPath(); c.moveTo(78, by-5); c.lineTo(79.5, by-1); c.lineTo(81, by-5); c.fill();
-      /* Arms */
-      c.strokeStyle = '#3a7a3a'; c.lineWidth = 5;
-      c.beginPath(); c.moveTo(48, by+6); c.quadraticCurveTo(34, by+16, 36, by+28); c.stroke();
-      c.beginPath(); c.moveTo(80, by+6); c.quadraticCurveTo(94, by+16, 92, by+28); c.stroke();
-      /* Claws */
-      c.strokeStyle = '#cc8'; c.lineWidth = 1.5;
-      c.beginPath(); c.moveTo(34, by+28); c.lineTo(30, by+32); c.stroke();
-      c.beginPath(); c.moveTo(36, by+28); c.lineTo(34, by+33); c.stroke();
-      c.beginPath(); c.moveTo(92, by+28); c.lineTo(96, by+32); c.stroke();
-      c.beginPath(); c.moveTo(94, by+28); c.lineTo(96, by+33); c.stroke();
-      /* Legs */
-      c.strokeStyle = '#2a5a2a'; c.lineWidth = 5;
-      c.beginPath(); c.moveTo(54, by+38); c.lineTo(50, by+50); c.stroke();
-      c.beginPath(); c.moveTo(74, by+38); c.lineTo(78, by+50); c.stroke();
-      /* Spear */
-      c.strokeStyle = '#8a6a30'; c.lineWidth = 2;
-      c.beginPath(); c.moveTo(96, by-20); c.lineTo(96, by+34); c.stroke();
-      c.fillStyle = '#bbb';
-      c.beginPath(); c.moveTo(93, by-20); c.lineTo(96, by-30); c.lineTo(99, by-20); c.fill();
       break;
     }
+
+    /* ── BAT ── */
+    case 'bat': {
+      // Body (small sphere)
+      const body = new THREE.Mesh(
+        new THREE.SphereGeometry(0.07, 8, 6),
+        mats.bat.body
+      );
+      body.position.y = 0.08;
+      g.add(body);
+
+      // Wings — PlaneGeometry angled out
+      const wingGeo = new THREE.PlaneGeometry(0.28, 0.14, 3, 1);
+      // Warp wing vertices for bat shape
+      const wingL = new THREE.Mesh(wingGeo, mats.bat.wing);
+      wingL.position.set(-0.2, 0.1, 0);
+      wingL.rotation.set(0, 0, 0.3);
+      g.add(wingL);
+
+      const wingR = new THREE.Mesh(wingGeo.clone(), mats.bat.wing);
+      wingR.position.set(0.2, 0.1, 0);
+      wingR.rotation.set(0, 0, -0.3);
+      g.add(wingR);
+
+      // Ears — small cones
+      const earGeo = new THREE.ConeGeometry(0.02, 0.06, 4);
+      const earL = new THREE.Mesh(earGeo, mats.bat.body);
+      earL.position.set(-0.03, 0.16, -0.02);
+      g.add(earL);
+      const earR = new THREE.Mesh(earGeo, mats.bat.body);
+      earR.position.set(0.03, 0.16, -0.02);
+      g.add(earR);
+
+      // Eyes
+      const eyeL = new THREE.Mesh(geo.eyeSmall, eyeMat);
+      eyeL.position.set(-0.04, 0.1, -0.06);
+      g.add(eyeL);
+      const eyeR = new THREE.Mesh(geo.eyeSmall, eyeMat);
+      eyeR.position.set(0.04, 0.1, -0.06);
+      g.add(eyeR);
+
+      // Fangs
+      const fangGeo = new THREE.ConeGeometry(0.008, 0.03, 3);
+      const fangL = new THREE.Mesh(fangGeo, mats.bat.fang);
+      fangL.position.set(-0.015, 0.0, -0.06);
+      fangL.rotation.x = Math.PI;
+      g.add(fangL);
+      const fangR = new THREE.Mesh(fangGeo, mats.bat.fang);
+      fangR.position.set(0.015, 0.0, -0.06);
+      fangR.rotation.x = Math.PI;
+      g.add(fangR);
+      break;
+    }
+
+    /* ── KOBOLD ── */
+    case 'kobold': {
+      // Torso
+      const torso = new THREE.Mesh(
+        new THREE.BoxGeometry(0.2, 0.3, 0.14),
+        mats.kobold.body
+      );
+      torso.position.y = 0.25;
+      g.add(torso);
+
+      // Head
+      const head = new THREE.Mesh(
+        new THREE.SphereGeometry(0.09, 8, 6),
+        mats.kobold.head
+      );
+      head.position.set(0, 0.46, 0);
+      g.add(head);
+
+      // Snout
+      const snout = new THREE.Mesh(
+        new THREE.ConeGeometry(0.04, 0.08, 6),
+        mats.kobold.head
+      );
+      snout.rotation.x = -Math.PI / 2;
+      snout.position.set(0, 0.43, -0.1);
+      g.add(snout);
+
+      // Eyes — yellow
+      const eyeL = new THREE.Mesh(geo.eyeMed, yellowEyeMat);
+      eyeL.position.set(-0.05, 0.49, -0.06);
+      g.add(eyeL);
+      const eyeR = new THREE.Mesh(geo.eyeMed, yellowEyeMat);
+      eyeR.position.set(0.05, 0.49, -0.06);
+      g.add(eyeR);
+
+      // Arms — thin boxes
+      const armGeo = new THREE.BoxGeometry(0.05, 0.2, 0.05);
+      const armL = new THREE.Mesh(armGeo, mats.kobold.arm);
+      armL.position.set(-0.15, 0.22, 0);
+      armL.rotation.z = 0.3;
+      g.add(armL);
+      const armR = new THREE.Mesh(armGeo, mats.kobold.arm);
+      armR.position.set(0.15, 0.22, 0);
+      armR.rotation.z = -0.3;
+      g.add(armR);
+
+      // Legs
+      const legGeo = new THREE.BoxGeometry(0.06, 0.12, 0.06);
+      const legL = new THREE.Mesh(legGeo, mats.kobold.arm);
+      legL.position.set(-0.06, 0.06, 0);
+      g.add(legL);
+      const legR = new THREE.Mesh(legGeo, mats.kobold.arm);
+      legR.position.set(0.06, 0.06, 0);
+      g.add(legR);
+
+      // Spear — shaft + tip
+      const shaft = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.012, 0.012, 0.55, 4),
+        mats.kobold.shaft
+      );
+      shaft.position.set(0.2, 0.35, 0);
+      g.add(shaft);
+      const tip = new THREE.Mesh(
+        new THREE.ConeGeometry(0.025, 0.08, 4),
+        mats.kobold.tip
+      );
+      tip.position.set(0.2, 0.63, 0);
+      g.add(tip);
+      break;
+    }
+
+    /* ── GOBLIN ── */
     case 'goblin': {
-      const by = 40;
-      /* Body — stocky */
-      const bg = c.createLinearGradient(64, by, 64, by+50);
-      bg.addColorStop(0, '#2a7a4a'); bg.addColorStop(1, '#1a4a2a');
-      c.fillStyle = bg;
-      c.beginPath();
-      c.moveTo(42, by+4); c.quadraticCurveTo(36, by+26, 42, by+46);
-      c.lineTo(86, by+46); c.quadraticCurveTo(92, by+26, 86, by+4); c.closePath(); c.fill();
-      /* Armor scraps */
-      c.fillStyle = 'rgba(80,60,30,0.7)';
-      c.fillRect(44, by+8, 40, 12);
-      c.strokeStyle = '#6a5020'; c.lineWidth = 1;
-      c.strokeRect(44, by+8, 40, 12);
-      /* Belt */
-      c.fillStyle = '#8a6a30'; c.fillRect(42, by+32, 44, 4);
-      c.fillStyle = '#ccaa44'; c.beginPath(); c.arc(64, by+34, 3, 0, Math.PI*2); c.fill();
-      /* Head — wide, brutish */
-      const hg = c.createRadialGradient(64, by-12, 3, 64, by-8, 22);
-      hg.addColorStop(0, '#3a8a5a'); hg.addColorStop(1, '#1a5a3a');
-      c.fillStyle = hg;
-      c.beginPath(); c.ellipse(64, by-8, 20, 16, 0, 0, Math.PI*2); c.fill();
-      /* Brow ridge */
-      c.strokeStyle = '#1a4a2a'; c.lineWidth = 3;
-      c.beginPath(); c.moveTo(46, by-14); c.quadraticCurveTo(64, by-20, 82, by-14); c.stroke();
-      /* Eyes — orange menacing */
-      eye(55, by-12, 5, '#ff8800', '#111');
-      eye(73, by-12, 5, '#ff8800', '#111');
-      /* Tusks */
-      c.fillStyle = '#eed';
-      c.beginPath(); c.moveTo(50, by+2); c.lineTo(48, by+10); c.lineTo(53, by+2); c.fill();
-      c.beginPath(); c.moveTo(75, by+2); c.lineTo(80, by+10); c.lineTo(78, by+2); c.fill();
-      /* Ears */
-      c.fillStyle = '#2a7a4a';
-      c.beginPath(); c.moveTo(44, by-10); c.lineTo(32, by-14); c.lineTo(44, by-4); c.fill();
-      c.beginPath(); c.moveTo(84, by-10); c.lineTo(96, by-14); c.lineTo(84, by-4); c.fill();
-      /* Arms */
-      c.strokeStyle = '#1a5a3a'; c.lineWidth = 7;
-      c.beginPath(); c.moveTo(42, by+10); c.quadraticCurveTo(26, by+22, 28, by+36); c.stroke();
-      c.beginPath(); c.moveTo(86, by+10); c.quadraticCurveTo(102, by+22, 100, by+36); c.stroke();
-      /* Fists */
-      c.fillStyle = '#2a7a4a';
-      c.beginPath(); c.arc(28, by+38, 5, 0, Math.PI*2); c.fill();
-      c.beginPath(); c.arc(100, by+38, 5, 0, Math.PI*2); c.fill();
-      /* Legs */
-      c.strokeStyle = '#1a4a2a'; c.lineWidth = 7;
-      c.beginPath(); c.moveTo(52, by+46); c.lineTo(48, by+58); c.stroke();
-      c.beginPath(); c.moveTo(76, by+46); c.lineTo(80, by+58); c.stroke();
-      /* Club */
-      c.strokeStyle = '#654'; c.lineWidth = 3;
-      c.beginPath(); c.moveTo(24, by+12); c.lineTo(24, by+40); c.stroke();
-      c.fillStyle = '#876';
-      c.beginPath(); c.ellipse(24, by+10, 6, 8, 0, 0, Math.PI*2); c.fill();
-      c.fillStyle = '#555';
-      c.beginPath(); c.arc(22, by+8, 2, 0, Math.PI*2); c.fill(); // nail
+      // Stocky torso
+      const torso = new THREE.Mesh(
+        new THREE.BoxGeometry(0.28, 0.36, 0.18),
+        mats.goblin.body
+      );
+      torso.position.y = 0.28;
+      g.add(torso);
+
+      // Belt
+      const belt = new THREE.Mesh(
+        new THREE.BoxGeometry(0.3, 0.04, 0.2),
+        mats.goblin.belt
+      );
+      belt.position.y = 0.14;
+      g.add(belt);
+
+      // Head — round, wide
+      const head = new THREE.Mesh(
+        new THREE.SphereGeometry(0.12, 8, 6),
+        mats.goblin.head
+      );
+      head.position.set(0, 0.54, 0);
+      g.add(head);
+
+      // Brow ridge
+      const brow = new THREE.Mesh(
+        new THREE.BoxGeometry(0.2, 0.03, 0.08),
+        mats.goblin.body
+      );
+      brow.position.set(0, 0.58, -0.08);
+      g.add(brow);
+
+      // Eyes — orange menacing
+      const eyeL = new THREE.Mesh(geo.eyeMed, orangeEyeMat);
+      eyeL.position.set(-0.06, 0.55, -0.1);
+      g.add(eyeL);
+      const eyeR = new THREE.Mesh(geo.eyeMed, orangeEyeMat);
+      eyeR.position.set(0.06, 0.55, -0.1);
+      g.add(eyeR);
+
+      // Tusks
+      const tuskGeo = new THREE.ConeGeometry(0.015, 0.05, 4);
+      const tuskL = new THREE.Mesh(tuskGeo, mats.goblin.tusk);
+      tuskL.position.set(-0.05, 0.44, -0.1);
+      g.add(tuskL);
+      const tuskR = new THREE.Mesh(tuskGeo, mats.goblin.tusk);
+      tuskR.position.set(0.05, 0.44, -0.1);
+      g.add(tuskR);
+
+      // Ears — pointed cones sideways
+      const earGeo = new THREE.ConeGeometry(0.02, 0.08, 4);
+      const earL = new THREE.Mesh(earGeo, mats.goblin.head);
+      earL.position.set(-0.14, 0.55, 0);
+      earL.rotation.z = Math.PI / 2;
+      g.add(earL);
+      const earR = new THREE.Mesh(earGeo, mats.goblin.head);
+      earR.position.set(0.14, 0.55, 0);
+      earR.rotation.z = -Math.PI / 2;
+      g.add(earR);
+
+      // Arms
+      const armGeo = new THREE.BoxGeometry(0.06, 0.24, 0.06);
+      const armL = new THREE.Mesh(armGeo, mats.goblin.arm);
+      armL.position.set(-0.2, 0.24, 0);
+      armL.rotation.z = 0.25;
+      g.add(armL);
+      const armR = new THREE.Mesh(armGeo, mats.goblin.arm);
+      armR.position.set(0.2, 0.24, 0);
+      armR.rotation.z = -0.25;
+      g.add(armR);
+
+      // Legs
+      const legGeo = new THREE.BoxGeometry(0.08, 0.14, 0.08);
+      const legL = new THREE.Mesh(legGeo, mats.goblin.arm);
+      legL.position.set(-0.08, 0.07, 0);
+      g.add(legL);
+      const legR = new THREE.Mesh(legGeo, mats.goblin.arm);
+      legR.position.set(0.08, 0.07, 0);
+      g.add(legR);
+
+      // Club
+      const clubShaft = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.015, 0.015, 0.3, 4),
+        mats.goblin.club
+      );
+      clubShaft.position.set(-0.26, 0.28, 0);
+      g.add(clubShaft);
+      const clubHead = new THREE.Mesh(
+        new THREE.SphereGeometry(0.04, 6, 4),
+        mats.goblin.club
+      );
+      clubHead.position.set(-0.26, 0.44, 0);
+      g.add(clubHead);
       break;
     }
+
+    /* ── SKELETON ── */
     case 'skeleton': {
-      const by = 32;
-      /* Skull */
-      c.fillStyle = '#eee8dd';
-      c.beginPath(); c.ellipse(64, by, 16, 14, 0, 0, Math.PI*2); c.fill();
-      /* Cheekbone shading */
-      c.fillStyle = 'rgba(0,0,0,0.08)';
-      c.beginPath(); c.ellipse(52, by+4, 8, 6, 0, 0, Math.PI*2); c.fill();
-      c.beginPath(); c.ellipse(76, by+4, 8, 6, 0, 0, Math.PI*2); c.fill();
-      /* Eye sockets — deep dark */
-      c.fillStyle = '#0a0808';
-      c.beginPath(); c.ellipse(56, by-2, 6, 5, -0.15, 0, Math.PI*2); c.fill();
-      c.beginPath(); c.ellipse(72, by-2, 6, 5, 0.15, 0, Math.PI*2); c.fill();
-      /* Soul fire in eyes */
-      eye(56, by-2, 2.5, '#ff3322', '#ff8844');
-      eye(72, by-2, 2.5, '#ff3322', '#ff8844');
-      /* Nose hole */
-      c.fillStyle = '#2a2420';
-      c.beginPath(); c.moveTo(62, by+4); c.lineTo(64, by+8); c.lineTo(66, by+4); c.fill();
-      /* Jaw + teeth */
-      c.fillStyle = '#ddd8cc';
-      c.beginPath(); c.moveTo(50, by+10); c.quadraticCurveTo(64, by+16, 78, by+10);
-      c.lineTo(78, by+8); c.lineTo(50, by+8); c.closePath(); c.fill();
-      c.fillStyle = '#111';
-      for (let i = 0; i < 6; i++) {
-        c.fillRect(52 + i*5, by+9, 1.5, 4);
-      }
-      /* Spine + ribcage */
-      c.strokeStyle = '#ccc8bb'; c.lineWidth = 3;
-      c.beginPath(); c.moveTo(64, by+16); c.lineTo(64, by+56); c.stroke();
-      /* Ribs */
-      c.lineWidth = 2;
+      // Skull
+      const skull = new THREE.Mesh(
+        new THREE.SphereGeometry(0.1, 8, 6),
+        mats.skeleton.bone
+      );
+      skull.position.set(0, 0.62, 0);
+      skull.scale.set(1, 1.1, 0.9);
+      g.add(skull);
+
+      // Eye sockets (dark spheres slightly bigger than eyes)
+      const socketGeo = new THREE.SphereGeometry(0.035, 6, 4);
+      const socketL = new THREE.Mesh(socketGeo, mats.skeleton.dark);
+      socketL.position.set(-0.04, 0.64, -0.08);
+      g.add(socketL);
+      const socketR = new THREE.Mesh(socketGeo, mats.skeleton.dark);
+      socketR.position.set(0.04, 0.64, -0.08);
+      g.add(socketR);
+
+      // Soul fire eyes
+      const eyeL = new THREE.Mesh(geo.eyeSmall, soulFireMat);
+      eyeL.position.set(-0.04, 0.64, -0.09);
+      g.add(eyeL);
+      const eyeR = new THREE.Mesh(geo.eyeSmall, soulFireMat);
+      eyeR.position.set(0.04, 0.64, -0.09);
+      g.add(eyeR);
+
+      // Jaw
+      const jaw = new THREE.Mesh(
+        new THREE.BoxGeometry(0.12, 0.03, 0.06),
+        mats.skeleton.bone
+      );
+      jaw.position.set(0, 0.53, -0.03);
+      g.add(jaw);
+
+      // Spine
+      const spine = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.02, 0.02, 0.3, 4),
+        mats.skeleton.bone
+      );
+      spine.position.set(0, 0.38, 0);
+      g.add(spine);
+
+      // Ribcage — 4 horizontal thin boxes
       for (let i = 0; i < 4; i++) {
-        const ry = by + 22 + i * 6;
-        c.beginPath(); c.moveTo(64, ry); c.quadraticCurveTo(50, ry-1, 44, ry+3); c.stroke();
-        c.beginPath(); c.moveTo(64, ry); c.quadraticCurveTo(78, ry-1, 84, ry+3); c.stroke();
+        const rib = new THREE.Mesh(
+          new THREE.BoxGeometry(0.22 - i * 0.02, 0.012, 0.08),
+          mats.skeleton.bone
+        );
+        rib.position.set(0, 0.48 - i * 0.04, 0);
+        g.add(rib);
       }
-      /* Arms */
-      c.strokeStyle = '#ccc8bb'; c.lineWidth = 3;
-      c.beginPath(); c.moveTo(44, by+22); c.quadraticCurveTo(30, by+30, 28, by+46); c.stroke();
-      c.beginPath(); c.moveTo(84, by+22); c.quadraticCurveTo(98, by+30, 100, by+46); c.stroke();
-      /* Hands */
-      c.lineWidth = 1.5;
-      c.beginPath(); c.moveTo(28, by+46); c.lineTo(24, by+50); c.stroke();
-      c.beginPath(); c.moveTo(28, by+46); c.lineTo(30, by+51); c.stroke();
-      c.beginPath(); c.moveTo(100, by+46); c.lineTo(104, by+50); c.stroke();
-      c.beginPath(); c.moveTo(100, by+46); c.lineTo(98, by+51); c.stroke();
-      /* Pelvis */
-      c.fillStyle = '#bbb8aa';
-      c.beginPath(); c.ellipse(64, by+56, 12, 4, 0, 0, Math.PI*2); c.fill();
-      /* Legs */
-      c.strokeStyle = '#bbb8aa'; c.lineWidth = 3;
-      c.beginPath(); c.moveTo(56, by+58); c.lineTo(52, by+74); c.stroke();
-      c.beginPath(); c.moveTo(72, by+58); c.lineTo(76, by+74); c.stroke();
-      /* Rusty sword */
-      c.strokeStyle = '#998877'; c.lineWidth = 2;
-      c.beginPath(); c.moveTo(22, by+20); c.lineTo(22, by+50); c.stroke();
-      c.fillStyle = '#aaa';
-      c.beginPath(); c.moveTo(20, by+20); c.lineTo(22, by+12); c.lineTo(24, by+20); c.fill();
-      c.fillStyle = '#664';
-      c.fillRect(18, by+50, 8, 3);
+
+      // Arms — thin cylinders
+      const armGeo = new THREE.CylinderGeometry(0.012, 0.01, 0.25, 4);
+      const armL = new THREE.Mesh(armGeo, mats.skeleton.bone);
+      armL.position.set(-0.14, 0.38, 0);
+      armL.rotation.z = 0.2;
+      g.add(armL);
+      const armR = new THREE.Mesh(armGeo, mats.skeleton.bone);
+      armR.position.set(0.14, 0.38, 0);
+      armR.rotation.z = -0.2;
+      g.add(armR);
+
+      // Pelvis
+      const pelvis = new THREE.Mesh(
+        new THREE.BoxGeometry(0.14, 0.04, 0.08),
+        mats.skeleton.bone
+      );
+      pelvis.position.set(0, 0.22, 0);
+      g.add(pelvis);
+
+      // Legs
+      const legGeo = new THREE.CylinderGeometry(0.015, 0.012, 0.2, 4);
+      const legL = new THREE.Mesh(legGeo, mats.skeleton.bone);
+      legL.position.set(-0.05, 0.1, 0);
+      g.add(legL);
+      const legR = new THREE.Mesh(legGeo, mats.skeleton.bone);
+      legR.position.set(0.05, 0.1, 0);
+      g.add(legR);
+
+      // Rusty sword
+      const blade = new THREE.Mesh(
+        new THREE.BoxGeometry(0.02, 0.25, 0.005),
+        mats.skeleton.sword
+      );
+      blade.position.set(0.2, 0.42, 0);
+      g.add(blade);
+      const hilt = new THREE.Mesh(
+        new THREE.BoxGeometry(0.06, 0.02, 0.02),
+        mats.skeleton.bone
+      );
+      hilt.position.set(0.2, 0.28, 0);
+      g.add(hilt);
       break;
     }
+
+    /* ── ORC ── */
     case 'orc': {
-      const by = 28;
-      /* Body — massive */
-      const bg = c.createLinearGradient(64, by+4, 64, by+60);
-      bg.addColorStop(0, '#993838'); bg.addColorStop(1, '#5a1a1a');
-      c.fillStyle = bg;
-      c.beginPath();
-      c.moveTo(36, by+8); c.quadraticCurveTo(28, by+32, 36, by+56);
-      c.lineTo(92, by+56); c.quadraticCurveTo(100, by+32, 92, by+8); c.closePath(); c.fill();
-      /* Chest plate */
-      c.fillStyle = '#555';
-      c.beginPath();
-      c.moveTo(42, by+10); c.lineTo(86, by+10);
-      c.quadraticCurveTo(90, by+28, 86, by+34);
-      c.lineTo(42, by+34); c.quadraticCurveTo(38, by+28, 42, by+10); c.fill();
-      c.strokeStyle = '#777'; c.lineWidth = 1;
-      c.beginPath(); c.moveTo(64, by+10); c.lineTo(64, by+34); c.stroke();
-      c.beginPath(); c.moveTo(42, by+22); c.lineTo(86, by+22); c.stroke();
-      /* Belt */
-      c.fillStyle = '#8a6a30'; c.fillRect(36, by+40, 56, 5);
-      c.fillStyle = '#ffcc44'; c.beginPath(); c.arc(64, by+42, 3.5, 0, Math.PI*2); c.fill();
-      /* Head — big, square-jawed */
-      const hg = c.createRadialGradient(64, by-8, 4, 64, by-4, 24);
-      hg.addColorStop(0, '#aa4848'); hg.addColorStop(1, '#6a2020');
-      c.fillStyle = hg;
-      c.beginPath();
-      c.moveTo(42, by-2); c.quadraticCurveTo(42, by-24, 64, by-26);
-      c.quadraticCurveTo(86, by-24, 86, by-2);
-      c.quadraticCurveTo(86, by+6, 64, by+8);
-      c.quadraticCurveTo(42, by+6, 42, by-2); c.fill();
-      /* Heavy brow */
-      c.fillStyle = '#5a1818';
-      c.beginPath(); c.moveTo(44, by-12); c.quadraticCurveTo(64, by-18, 84, by-12);
-      c.lineTo(84, by-8); c.quadraticCurveTo(64, by-12, 44, by-8); c.closePath(); c.fill();
-      /* Eyes — burning */
-      eye(54, by-8, 5.5, '#ff4400', '#ffcc00');
-      eye(74, by-8, 5.5, '#ff4400', '#ffcc00');
-      /* Nose */
-      c.fillStyle = '#6a2020';
-      c.beginPath(); c.moveTo(60, by-2); c.quadraticCurveTo(64, by+3, 68, by-2);
-      c.lineTo(66, by-4); c.lineTo(62, by-4); c.closePath(); c.fill();
-      /* Tusks — large */
-      c.fillStyle = '#eee';
-      c.beginPath(); c.moveTo(48, by+4); c.lineTo(44, by+14); c.lineTo(52, by+4); c.fill();
-      c.beginPath(); c.moveTo(76, by+4); c.lineTo(84, by+14); c.lineTo(80, by+4); c.fill();
-      c.fillStyle = '#fff';
-      c.beginPath(); c.moveTo(49, by+4); c.lineTo(46, by+10); c.lineTo(51, by+4); c.fill();
-      c.beginPath(); c.moveTo(77, by+4); c.lineTo(82, by+10); c.lineTo(79, by+4); c.fill();
-      /* Ears */
-      c.fillStyle = '#993838';
-      c.beginPath(); c.moveTo(42, by-6); c.lineTo(30, by-12); c.lineTo(42, by+2); c.fill();
-      c.beginPath(); c.moveTo(86, by-6); c.lineTo(98, by-12); c.lineTo(86, by+2); c.fill();
-      /* Arms */
-      c.strokeStyle = '#7a2828'; c.lineWidth = 10;
-      c.beginPath(); c.moveTo(36, by+14); c.quadraticCurveTo(18, by+28, 20, by+44); c.stroke();
-      c.beginPath(); c.moveTo(92, by+14); c.quadraticCurveTo(110, by+28, 108, by+44); c.stroke();
-      /* Bracers */
-      c.fillStyle = '#555';
-      c.beginPath(); c.ellipse(22, by+36, 7, 4, 0.3, 0, Math.PI*2); c.fill();
-      c.beginPath(); c.ellipse(106, by+36, 7, 4, -0.3, 0, Math.PI*2); c.fill();
-      /* Fists */
-      c.fillStyle = '#993838';
-      c.beginPath(); c.arc(20, by+46, 6, 0, Math.PI*2); c.fill();
-      c.beginPath(); c.arc(108, by+46, 6, 0, Math.PI*2); c.fill();
-      /* Legs */
-      c.strokeStyle = '#5a1a1a'; c.lineWidth = 8;
-      c.beginPath(); c.moveTo(50, by+56); c.lineTo(46, by+72); c.stroke();
-      c.beginPath(); c.moveTo(78, by+56); c.lineTo(82, by+72); c.stroke();
-      /* Boots */
-      c.fillStyle = '#333';
-      c.beginPath(); c.ellipse(46, by+74, 8, 4, 0, 0, Math.PI*2); c.fill();
-      c.beginPath(); c.ellipse(82, by+74, 8, 4, 0, 0, Math.PI*2); c.fill();
-      /* Battle axe */
-      c.strokeStyle = '#7a5520'; c.lineWidth = 3;
-      c.beginPath(); c.moveTo(14, by-10); c.lineTo(14, by+48); c.stroke();
-      /* Axe head */
-      c.fillStyle = '#888';
-      c.beginPath(); c.moveTo(14, by-10); c.quadraticCurveTo(0, by-6, 2, by+2);
-      c.lineTo(14, by); c.closePath(); c.fill();
-      c.fillStyle = '#aaa';
-      c.beginPath(); c.moveTo(14, by-8); c.quadraticCurveTo(4, by-4, 5, by);
-      c.lineTo(14, by-1); c.closePath(); c.fill();
+      // Massive torso
+      const torso = new THREE.Mesh(
+        new THREE.BoxGeometry(0.36, 0.46, 0.22),
+        mats.orc.body
+      );
+      torso.position.y = 0.35;
+      g.add(torso);
+
+      // Chest plate
+      const plate = new THREE.Mesh(
+        new THREE.BoxGeometry(0.3, 0.2, 0.24),
+        mats.orc.armor
+      );
+      plate.position.set(0, 0.42, 0);
+      g.add(plate);
+
+      // Head — box, heavy jaw
+      const head = new THREE.Mesh(
+        new THREE.BoxGeometry(0.2, 0.18, 0.18),
+        mats.orc.head
+      );
+      head.position.set(0, 0.68, 0);
+      g.add(head);
+
+      // Heavy brow
+      const brow = new THREE.Mesh(
+        new THREE.BoxGeometry(0.22, 0.04, 0.1),
+        mats.orc.body
+      );
+      brow.position.set(0, 0.74, -0.06);
+      g.add(brow);
+
+      // Eyes — burning orange
+      const eyeL = new THREE.Mesh(geo.eyeLg, orangeEyeMat);
+      eyeL.position.set(-0.06, 0.7, -0.09);
+      g.add(eyeL);
+      const eyeR = new THREE.Mesh(geo.eyeLg, orangeEyeMat);
+      eyeR.position.set(0.06, 0.7, -0.09);
+      g.add(eyeR);
+
+      // Tusks
+      const tuskGeo = new THREE.ConeGeometry(0.02, 0.07, 4);
+      const tuskL = new THREE.Mesh(tuskGeo, mats.orc.tusk);
+      tuskL.position.set(-0.06, 0.6, -0.09);
+      g.add(tuskL);
+      const tuskR = new THREE.Mesh(tuskGeo, mats.orc.tusk);
+      tuskR.position.set(0.06, 0.6, -0.09);
+      g.add(tuskR);
+
+      // Ears
+      const earGeo = new THREE.ConeGeometry(0.025, 0.06, 4);
+      const earL = new THREE.Mesh(earGeo, mats.orc.head);
+      earL.position.set(-0.13, 0.7, 0);
+      earL.rotation.z = Math.PI / 2;
+      g.add(earL);
+      const earR = new THREE.Mesh(earGeo, mats.orc.head);
+      earR.position.set(0.13, 0.7, 0);
+      earR.rotation.z = -Math.PI / 2;
+      g.add(earR);
+
+      // Arms — thick boxes
+      const armGeo = new THREE.BoxGeometry(0.08, 0.3, 0.08);
+      const armL = new THREE.Mesh(armGeo, mats.orc.head);
+      armL.position.set(-0.24, 0.32, 0);
+      armL.rotation.z = 0.15;
+      g.add(armL);
+      const armR = new THREE.Mesh(armGeo, mats.orc.head);
+      armR.position.set(0.24, 0.32, 0);
+      armR.rotation.z = -0.15;
+      g.add(armR);
+
+      // Bracers
+      const bracerGeo = new THREE.BoxGeometry(0.09, 0.06, 0.09);
+      const bracerL = new THREE.Mesh(bracerGeo, mats.orc.armor);
+      bracerL.position.set(-0.24, 0.24, 0);
+      g.add(bracerL);
+      const bracerR = new THREE.Mesh(bracerGeo, mats.orc.armor);
+      bracerR.position.set(0.24, 0.24, 0);
+      g.add(bracerR);
+
+      // Legs
+      const legGeo = new THREE.BoxGeometry(0.1, 0.18, 0.1);
+      const legL = new THREE.Mesh(legGeo, mats.orc.body);
+      legL.position.set(-0.1, 0.09, 0);
+      g.add(legL);
+      const legR = new THREE.Mesh(legGeo, mats.orc.body);
+      legR.position.set(0.1, 0.09, 0);
+      g.add(legR);
+
+      // Boots
+      const bootGeo = new THREE.BoxGeometry(0.11, 0.06, 0.14);
+      const bootL = new THREE.Mesh(bootGeo, mats.orc.armor);
+      bootL.position.set(-0.1, 0.03, -0.01);
+      g.add(bootL);
+      const bootR = new THREE.Mesh(bootGeo, mats.orc.armor);
+      bootR.position.set(0.1, 0.03, -0.01);
+      g.add(bootR);
+
+      // Battle axe — shaft + head
+      const axeShaft = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.015, 0.015, 0.55, 4),
+        mats.orc.shaft
+      );
+      axeShaft.position.set(-0.32, 0.4, 0);
+      g.add(axeShaft);
+      // Axe head — flat box
+      const axeHead = new THREE.Mesh(
+        new THREE.BoxGeometry(0.12, 0.14, 0.02),
+        mats.orc.axe
+      );
+      axeHead.position.set(-0.38, 0.6, 0);
+      g.add(axeHead);
       break;
     }
+
     default: {
-      c.fillStyle = type.col;
-      c.beginPath(); c.arc(64, 64, 24, 0, Math.PI*2); c.fill();
-      eye(52, 56, 6, '#f00', '#000'); eye(76, 56, 6, '#f00', '#000');
+      // Fallback sphere
+      const body = new THREE.Mesh(
+        new THREE.SphereGeometry(0.15, 8, 6),
+        new THREE.MeshLambertMaterial({ color: 0xaa3333 })
+      );
+      body.position.y = 0.15;
+      g.add(body);
+      const eyeL = new THREE.Mesh(geo.eyeMed, eyeMat);
+      eyeL.position.set(-0.06, 0.2, -0.12);
+      g.add(eyeL);
+      const eyeR = new THREE.Mesh(geo.eyeMed, eyeMat);
+      eyeR.position.set(0.06, 0.2, -0.12);
+      g.add(eyeR);
     }
   }
 
-  return cv;
+  return g;
 }
 
-function makeMonsterSprite(type) {
-  const cv = drawMonster(type.name, type);
-  const tex = new THREE.CanvasTexture(cv);
-  tex.magFilter = THREE.LinearFilter;
-  tex.minFilter = THREE.LinearMipmapLinearFilter;
-  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
-  const sprite = new THREE.Sprite(mat);
-  sprite.scale.set(type.size * 1.3, type.size * 1.3, 1);
-  return sprite;
-}
-
+/* =========================================================
+   HP BAR (stays as Sprite — appropriate for 2D overlay)
+   ========================================================= */
 function makeHpBar() {
   const cv = document.createElement('canvas');
   cv.width = 32; cv.height = 4;
@@ -440,6 +649,15 @@ function updateHpBar(bar, pct) {
    ========================================================= */
 export const monsters = [];
 
+/* Store original colors so we can restore after hit flash */
+function cacheColors(group) {
+  group.traverse(ch => {
+    if (ch.isMesh && ch.material && ch.material.color) {
+      ch.userData._origColor = ch.material.color.getHex();
+    }
+  });
+}
+
 export function spawnMonsters() {
   /* Clear existing */
   for (const m of monsters) {
@@ -466,8 +684,9 @@ export function spawnMonsters() {
       const mx = room.x + 1 + Math.floor(Math.random() * (room.w - 2)) + 0.5;
       const mz = room.y + 1 + Math.floor(Math.random() * (room.h - 2)) + 0.5;
 
-      const sprite = makeMonsterSprite(type);
-      sprite.position.set(mx, type.size / 2, mz);
+      const sprite = buildMonsterMesh(type);
+      cacheColors(sprite);
+      sprite.position.set(mx, 0, mz);
       scene.add(sprite);
 
       const hpBar = makeHpBar();
@@ -545,22 +764,34 @@ export function updateMonsters(dt) {
     /* Hit flash countdown */
     if (m.flashTimer > 0) {
       m.flashTimer -= dt;
-      if (m.flashTimer <= 0) m.sprite.material.color.set(0xffffff);
+      if (m.flashTimer <= 0) {
+        /* Restore original colors */
+        m.sprite.traverse(ch => {
+          if (ch.isMesh && ch.material && ch.userData._origColor !== undefined) {
+            ch.material.color.setHex(ch.userData._origColor);
+          }
+        });
+      }
     }
 
     /* Bob animation */
     m.bobPhase += dt * (m.state === 'chase' ? 8 : 2.5);
     const bob = Math.sin(m.bobPhase) * (m.state === 'chase' ? 0.06 : 0.03);
-    const baseY = m.type.size * 0.7;
+    const baseY = 0; // 3D meshes are built from ground up
 
-    /* Update sprite position */
+    /* Update position */
     m.sprite.position.set(m.x, baseY + bob, m.z);
     m.hpBar.sprite.position.set(m.x, m.type.size * 1.4 + 0.1 + bob, m.z);
 
+    /* Face the player when chasing/attacking */
+    if (m.state !== 'idle') {
+      m.sprite.rotation.y = Math.atan2(dx, dz);
+    }
+
     /* Aggro pulse — scale up slightly when chasing/attacking */
-    const baseScale = m.type.size * 1.3;
     const pulse = m.state !== 'idle' ? Math.sin(m.bobPhase * 2) * 0.04 : 0;
-    m.sprite.scale.set(baseScale + pulse, baseScale + pulse, 1);
+    const s = 1 + pulse;
+    m.sprite.scale.set(s, s, s);
 
     /* Show HP bar only when damaged or chasing */
     m.hpBar.sprite.visible = m.hp < m.maxHp || m.state === 'chase' || m.state === 'attack';
@@ -656,9 +887,13 @@ export function tryPlayerAttack() {
   bestMon.hp -= dmg;
   showMsg(`You hit the ${bestMon.type.name}! (${dmg} damage)`);
 
-  /* Flash red — timer-based, resolved in updateMonsters */
+  /* Flash red — set all meshes, timer-based restore in updateMonsters */
   bestMon.flashTimer = 0.12;
-  bestMon.sprite.material.color.set(0xff4444);
+  bestMon.sprite.traverse(ch => {
+    if (ch.isMesh && ch.material && ch.material.color) {
+      ch.material.color.set(0xff4444);
+    }
+  });
 
   updateHpBar(bestMon.hpBar, Math.max(0, bestMon.hp / bestMon.maxHp));
 
